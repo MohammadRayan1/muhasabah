@@ -22,31 +22,43 @@ export default async function Home() {
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-10">
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-6 flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-stone-900">Muhasabah</h1>
-          <p className="text-sm text-stone-500">Track student payments and upcoming due dates</p>
+          <h1 className="text-3xl font-bold tracking-tight text-emerald-700">Muhasabah</h1>
+          <p className="mt-1 text-sm text-stone-500">Track student payments and upcoming due dates</p>
         </div>
-        <div className="flex items-center gap-3">
-          <Link href="/programs" className="text-sm text-stone-500 hover:underline">
-            Programs →
-          </Link>
-          <Link href="/reports" className="text-sm text-stone-500 hover:underline">
-            Monthly Revenue →
+        <form action={logout}>
+          <button
+            type="submit"
+            className="text-sm font-medium text-stone-400 transition-colors hover:text-stone-600 hover:underline"
+          >
+            Log out
+          </button>
+        </form>
+      </div>
+
+      <nav className="mb-8 flex flex-wrap items-center justify-between gap-4 border-b border-stone-200 pb-6">
+        <div className="flex items-center gap-1 rounded-full bg-stone-100 p-1">
+          <Link
+            href="/programs"
+            className="rounded-full px-4 py-2 text-sm font-semibold text-stone-600 transition-colors hover:bg-white hover:text-stone-900 hover:shadow-sm"
+          >
+            Programs
           </Link>
           <Link
-            href="/students/new"
-            className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700"
+            href="/reports"
+            className="rounded-full px-4 py-2 text-sm font-semibold text-stone-600 transition-colors hover:bg-white hover:text-stone-900 hover:shadow-sm"
           >
-            + Add Student
+            Monthly Revenue
           </Link>
-          <form action={logout}>
-            <button type="submit" className="text-sm text-stone-400 hover:text-stone-600 hover:underline">
-              Log out
-            </button>
-          </form>
         </div>
-      </div>
+        <Link
+          href="/students/new"
+          className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
+        >
+          + Add Student
+        </Link>
+      </nav>
 
       <div className="mb-8 grid grid-cols-3 gap-4">
         <SummaryCard label="Overdue" count={overdue.length} color="red" />
