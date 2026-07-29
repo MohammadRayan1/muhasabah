@@ -13,6 +13,7 @@ export async function createStudent(formData: FormData) {
   const firstMonthPaid = formData.get("firstMonthPaid") === "on";
   const nextDueDateRaw = String(formData.get("nextDueDate") ?? "");
   const notes = String(formData.get("notes") ?? "").trim();
+  const priceNote = String(formData.get("priceNote") ?? "").trim();
   const programIds = formData.getAll("programIds").map(String).filter(Boolean);
 
   if (!name) throw new Error("Name is required");
@@ -40,6 +41,7 @@ export async function createStudent(formData: FormData) {
         phone: phone || null,
         email: email || null,
         tuitionAmount,
+        priceNote: priceNote || null,
         billingDay: nextDueDate.getDate(),
         nextDueDate,
         notes: notes || null,

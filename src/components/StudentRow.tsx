@@ -32,6 +32,7 @@ export default function StudentRow({ student }: { student: StudentWithPrograms }
             {formatCurrency(student.tuitionAmount)} / month
             {student.phone ? ` · ${student.phone}` : ""}
             {student.email ? ` · ${student.email}` : ""}
+            {student.priceNote ? ` · ${student.priceNote}` : ""}
           </p>
           <p className="mt-1 text-sm">
             Next due {formatDate(student.nextDueDate)} — {dueDateLabel(daysUntilDue, status)}

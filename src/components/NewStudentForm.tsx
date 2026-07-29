@@ -25,6 +25,12 @@ export default function NewStudentForm({ programs }: { programs: Program[] }) {
     setTuitionAmount(sum > 0 ? String(sum) : "");
   }
 
+  const programTotal = programs
+    .filter((p) => selectedProgramIds.has(p.id))
+    .reduce((total, p) => total + p.price, 0);
+  const parsedTuition = parseFloat(tuitionAmount) || 0;
+  const isCustomPrice = programTotal > 0 && parsedTuition !== programTotal;
+
   return (
     <form action={createStudent} className="space-y-4">
       <div>
@@ -116,6 +122,21 @@ export default function NewStudentForm({ programs }: { programs: Program[] }) {
           </p>
         ) : null}
       </div>
+
+      {isCustomPrice && (
+        <div>
+          <label htmlFor="priceNote" className="block text-sm font-medium text-gray-700">
+            Reason for custom price
+          </label>
+          <input
+            id="priceNote"
+            name="priceNote"
+            type="text"
+            placeholder="e.g. financial aid, sibling discount"
+            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+          />
+        </div>
+      )}
 
       <div className="flex items-start gap-2 rounded-md border border-gray-200 bg-gray-50 p-3">
         <input

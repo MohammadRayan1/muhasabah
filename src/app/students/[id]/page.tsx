@@ -44,6 +44,9 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
         <div className="rounded-lg border border-gray-200 p-4">
           <p className="text-lg font-semibold text-gray-900">{formatCurrency(student.tuitionAmount)}</p>
           <p className="text-sm text-gray-500">Tuition / month</p>
+          {student.priceNote ? (
+            <p className="mt-1 text-xs text-amber-700">{student.priceNote}</p>
+          ) : null}
         </div>
         <div className="rounded-lg border border-gray-200 p-4">
           <p className="text-lg font-semibold text-gray-900">{formatDate(student.nextDueDate)}</p>

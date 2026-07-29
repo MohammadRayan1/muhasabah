@@ -18,6 +18,7 @@ model Student {
   phone         String?
   email         String?
   tuitionAmount Float
+  priceNote     String?
   billingDay    Int
   nextDueDate   DateTime
   joinedAt      DateTime     @default(now())
