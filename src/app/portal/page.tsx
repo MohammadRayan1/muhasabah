@@ -45,7 +45,7 @@ export default async function PortalPage() {
     <main className="mx-auto max-w-2xl px-4 py-10">
       <div className="mb-6 flex items-start justify-between">
         <div>
-          <p className="mb-1 text-sm font-medium text-emerald-700">Muhasabah</p>
+          <p className="mb-1 text-sm font-medium text-emerald-700">Muhasabah <span lang="ar" dir="rtl">محاسبة</span></p>
           <h1 className="text-2xl font-semibold text-stone-900">{student.name}</h1>
           <p className="text-sm text-stone-500">{user.email}</p>
         </div>

@@ -22,9 +22,14 @@ export default async function Home() {
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-10">
-      <div className="mb-6 flex items-start justify-between">
+      <div className="mb-12 flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-emerald-700">Muhasabah</h1>
+          <h1 className="flex items-baseline gap-2 text-3xl font-bold tracking-tight text-emerald-700">
+            Muhasabah
+            <span lang="ar" dir="rtl" className="text-3xl font-bold text-emerald-700">
+              محاسبة
+            </span>
+          </h1>
           <p className="mt-1 text-sm text-stone-500">Track student payments and upcoming due dates</p>
         </div>
         <form action={logout}>
@@ -37,7 +42,7 @@ export default async function Home() {
         </form>
       </div>
 
-      <nav className="mb-8 flex flex-wrap items-center justify-between gap-4 border-b border-stone-200 pb-6">
+      <nav className="mb-10 flex flex-wrap items-center justify-between gap-4 border-b border-stone-200 pb-8">
         <div className="flex items-center gap-1 rounded-full bg-stone-100 p-1">
           <Link
             href="/programs"
