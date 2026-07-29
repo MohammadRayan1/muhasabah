@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getMonthDetail } from "@/lib/reports";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { requireTeacher } from "@/lib/auth/dal";
+import ResetMonthButton from "@/components/ResetMonthButton";
 
 export default async function MonthDetailPage({
   params,
@@ -24,7 +25,15 @@ export default async function MonthDetailPage({
         ← Back to Monthly Revenue
       </Link>
 
-      <h1 className="mt-4 mb-6 text-2xl font-bold text-stone-900">{detail.label}</h1>
+      <div className="mt-4 mb-6 flex flex-wrap items-center justify-between gap-4">
+        <h1 className="text-2xl font-bold text-stone-900">{detail.label}</h1>
+        <ResetMonthButton
+          month={detail.slug}
+          label={detail.label}
+          paymentCount={detail.payments.length}
+          collectedTotal={detail.collectedTotal}
+        />
+      </div>
 
       <div className="mb-8 grid grid-cols-3 gap-4">
         <div className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm shadow-stone-900/5">

@@ -41,7 +41,7 @@ function monthLabel(date: Date) {
   return new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" }).format(date);
 }
 
-function monthBounds(slug: string): { monthStart: Date; monthEnd: Date } {
+export function monthBounds(slug: string): { monthStart: Date; monthEnd: Date } {
   const [year, month] = slug.split("-").map(Number);
   const monthStart = new Date(year, month - 1, 1);
   const monthEnd = new Date(year, month, 0, 23, 59, 59, 999);

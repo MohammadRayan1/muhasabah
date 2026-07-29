@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { addMonths, parseDateOnly, startOfDay } from "@/lib/dates";
+import { monthBounds } from "@/lib/reports";
 import { requireTeacher } from "@/lib/auth/dal";
 import { sendInviteEmail } from "@/lib/email";
 import type { ActionState } from "@/lib/action-state";
@@ -133,6 +134,23 @@ export async function recordPayment(formData: FormData) {
     }),
   ]);
 
+  revalidatePath("/");
+}
+
+export async function resetMonthPayments(formData: FormData) {
+  await requireTeacher();
+
+  const month = String(formData.get("month") ?? "");
+  if (!/^\d{4}-\d{2}$/.test(month)) throw new Error("Invalid month");
+
+  const { monthStart, monthEnd } = monthBounds(month);
+
+  await prisma.payment.deleteMany({
+    where: { paidAt: { gte: monthStart, lte: monthEnd } },
+  });
+
+  revalidatePath(`/reports/${month}`);
+  revalidatePath("/reports");
   revalidatePath("/");
 }
 
