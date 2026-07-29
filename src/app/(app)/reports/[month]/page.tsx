@@ -19,12 +19,12 @@ export default async function MonthDetailPage({
   const diff = detail.collectedTotal - detail.expectedTotal;
 
   return (
-    <main className="mx-auto max-w-2xl px-4 py-10">
+    <div className="mx-auto max-w-2xl">
       <Link href="/reports" className="text-sm text-stone-500 hover:underline">
         ← Back to Monthly Revenue
       </Link>
 
-      <h1 className="mt-4 mb-6 text-2xl font-semibold text-stone-900">{detail.label}</h1>
+      <h1 className="mt-4 mb-6 text-2xl font-bold text-stone-900">{detail.label}</h1>
 
       <div className="mb-8 grid grid-cols-3 gap-4">
         <div className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm shadow-stone-900/5">
@@ -127,6 +127,6 @@ export default async function MonthDetailPage({
           </table>
         </div>
       )}
-    </main>
+    </div>
   );
 }

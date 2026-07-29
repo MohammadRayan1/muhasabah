@@ -3,11 +3,24 @@
 :root {
   --background: #fdf9f3;
   --foreground: #44403c;
+
+  --sidebar: #34362b;
+  --sidebar-foreground: #e8e6da;
+  --sidebar-muted: #9a9c86;
+  --sidebar-active-bg: #c9cdb2;
+  --sidebar-active-fg: #2b2d22;
+  --accent-circle: #6b6f58;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-active-bg: var(--sidebar-active-bg);
+  --color-sidebar-active-fg: var(--sidebar-active-fg);
+  --color-accent-circle: var(--accent-circle);
   --font-sans: var(--font-nunito);
 }
 

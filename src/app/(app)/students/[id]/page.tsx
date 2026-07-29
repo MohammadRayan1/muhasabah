@@ -1,10 +1,10 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getPaymentStatus, STATUS_BADGE_STYLES, STATUS_LABEL } from "@/lib/status";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { requireTeacher } from "@/lib/auth/dal";
 import SendInviteForm from "@/components/SendInviteForm";
+import Avatar from "@/components/Avatar";
 
 export default async function StudentProfilePage({ params }: { params: Promise<{ id: string }> }) {
   await requireTeacher();
@@ -29,17 +29,16 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
   const totalPaid = student.payments.reduce((sum, p) => sum + p.amount, 0);
 
   return (
-    <main className="mx-auto max-w-2xl px-4 py-10">
-      <Link href="/" className="text-sm text-stone-500 hover:underline">
-        ← Back to dashboard
-      </Link>
-
-      <div className="mt-4 mb-6 flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-stone-900">{student.name}</h1>
-          <p className="text-sm text-stone-500">
-            {[student.phone, student.email].filter(Boolean).join(" · ") || "No contact info"}
-          </p>
+    <div className="mx-auto max-w-2xl">
+      <div className="mb-6 flex items-start justify-between">
+        <div className="flex items-center gap-4">
+          <Avatar name={student.name} size="lg" />
+          <div>
+            <h1 className="text-2xl font-bold text-stone-900">{student.name}</h1>
+            <p className="text-sm text-stone-500">
+              {[student.phone, student.email].filter(Boolean).join(" · ") || "No contact info"}
+            </p>
+          </div>
         </div>
         <span
           className={`rounded-full border px-2 py-0.5 text-xs font-medium ${STATUS_BADGE_STYLES[status]}`}
@@ -133,6 +132,6 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
           </table>
         </div>
       )}
-    </main>
+    </div>
   );
 }

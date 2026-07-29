@@ -9,12 +9,8 @@ export default async function ReportsPage() {
   const months = await getMonthlyRevenue(6);
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10">
-      <Link href="/" className="text-sm text-stone-500 hover:underline">
-        ← Back to dashboard
-      </Link>
-
-      <h1 className="mt-4 text-2xl font-semibold text-stone-900">Monthly Revenue</h1>
+    <div className="mx-auto max-w-3xl">
+      <h1 className="text-2xl font-bold text-stone-900">Monthly Revenue</h1>
       <p className="mb-6 text-sm text-stone-500">
         Click a month to see exactly which payments make up its total — including from students
         who&apos;ve since been removed.
@@ -56,6 +52,6 @@ export default async function ReportsPage() {
           </tbody>
         </table>
       </div>
-    </main>
+    </div>
   );
 }

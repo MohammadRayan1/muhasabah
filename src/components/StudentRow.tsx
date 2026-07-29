@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getPaymentStatus, STATUS_BADGE_STYLES, STATUS_LABEL } from "@/lib/status";
 import { recordPayment, setStudentActive } from "@/lib/actions";
 import { formatCurrency, formatDate } from "@/lib/format";
+import Avatar from "@/components/Avatar";
 import type { Student, Program } from "@/generated/prisma/client";
 
 function dueDateLabel(daysUntilDue: number, status: keyof typeof STATUS_LABEL) {
@@ -21,28 +22,31 @@ export default function StudentRow({ student }: { student: StudentWithPrograms }
   return (
     <div className={`rounded-2xl border p-4 shadow-sm shadow-stone-900/5 ${STATUS_BADGE_STYLES[status]}`}>
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <Link href={`/students/${student.id}`} className="min-w-0 flex-1 hover:opacity-80">
-          <div className="flex items-center gap-2">
-            <h3 className="font-medium text-stone-900">{student.name}</h3>
-            <span className="rounded-full border px-2 py-0.5 text-xs font-medium">
-              {STATUS_LABEL[status]}
-            </span>
-          </div>
-          <p className="mt-1 text-sm text-stone-600">
-            {formatCurrency(student.tuitionAmount)} / month
-            {student.phone ? ` · ${student.phone}` : ""}
-            {student.email ? ` · ${student.email}` : ""}
-            {student.priceNote ? ` · ${student.priceNote}` : ""}
-          </p>
-          <p className="mt-1 text-sm">
-            Next due {formatDate(student.nextDueDate)} — {dueDateLabel(daysUntilDue, status)}
-          </p>
-          {student.enrollments.length > 0 ? (
-            <p className="mt-1 text-xs text-stone-500">
-              {student.enrollments.map((e) => e.program.name).join(", ")}
+        <Link href={`/students/${student.id}`} className="flex min-w-0 flex-1 gap-3 hover:opacity-80">
+          <Avatar name={student.name} />
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h3 className="font-medium text-stone-900">{student.name}</h3>
+              <span className="rounded-full border px-2 py-0.5 text-xs font-medium">
+                {STATUS_LABEL[status]}
+              </span>
+            </div>
+            <p className="mt-1 text-sm text-stone-600">
+              {formatCurrency(student.tuitionAmount)} / month
+              {student.phone ? ` · ${student.phone}` : ""}
+              {student.email ? ` · ${student.email}` : ""}
+              {student.priceNote ? ` · ${student.priceNote}` : ""}
             </p>
-          ) : null}
-          {student.notes ? <p className="mt-1 text-sm text-stone-500">{student.notes}</p> : null}
+            <p className="mt-1 text-sm">
+              Next due {formatDate(student.nextDueDate)} — {dueDateLabel(daysUntilDue, status)}
+            </p>
+            {student.enrollments.length > 0 ? (
+              <p className="mt-1 text-xs text-stone-500">
+                {student.enrollments.map((e) => e.program.name).join(", ")}
+              </p>
+            ) : null}
+            {student.notes ? <p className="mt-1 text-sm text-stone-500">{student.notes}</p> : null}
+          </div>
         </Link>
 
         <div className="flex flex-col items-end gap-2">
