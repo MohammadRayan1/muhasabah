@@ -3,13 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { addMonths, parseDateOnly } from "@/lib/dates";
+import { addMonths, parseDateOnly, startOfDay } from "@/lib/dates";
 
 export async function createStudent(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const phone = String(formData.get("phone") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
   const tuitionAmount = Number(formData.get("tuitionAmount"));
+  const firstMonthPaid = formData.get("firstMonthPaid") === "on";
   const nextDueDateRaw = String(formData.get("nextDueDate") ?? "");
   const notes = String(formData.get("notes") ?? "").trim();
 
@@ -17,24 +18,38 @@ export async function createStudent(formData: FormData) {
   if (!Number.isFinite(tuitionAmount) || tuitionAmount <= 0) {
     throw new Error("Tuition amount must be a positive number");
   }
-  if (!nextDueDateRaw) {
-    throw new Error("A valid next payment due date is required");
-  }
-  const nextDueDate = parseDateOnly(nextDueDateRaw);
-  if (Number.isNaN(nextDueDate.getTime())) {
-    throw new Error("A valid next payment due date is required");
+
+  let nextDueDate: Date;
+  if (firstMonthPaid) {
+    nextDueDate = addMonths(startOfDay(new Date()), 1);
+  } else {
+    if (!nextDueDateRaw) {
+      throw new Error("A valid next payment due date is required");
+    }
+    nextDueDate = parseDateOnly(nextDueDateRaw);
+    if (Number.isNaN(nextDueDate.getTime())) {
+      throw new Error("A valid next payment due date is required");
+    }
   }
 
-  await prisma.student.create({
-    data: {
-      name,
-      phone: phone || null,
-      email: email || null,
-      tuitionAmount,
-      billingDay: nextDueDate.getDate(),
-      nextDueDate,
-      notes: notes || null,
-    },
+  await prisma.$transaction(async (tx) => {
+    const student = await tx.student.create({
+      data: {
+        name,
+        phone: phone || null,
+        email: email || null,
+        tuitionAmount,
+        billingDay: nextDueDate.getDate(),
+        nextDueDate,
+        notes: notes || null,
+      },
+    });
+
+    if (firstMonthPaid) {
+      await tx.payment.create({
+        data: { studentId: student.id, amount: tuitionAmount },
+      });
+    }
   });
 
   revalidatePath("/");

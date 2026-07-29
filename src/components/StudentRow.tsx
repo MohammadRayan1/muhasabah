@@ -1,26 +1,8 @@
-import { getPaymentStatus } from "@/lib/status";
+import Link from "next/link";
+import { getPaymentStatus, STATUS_BADGE_STYLES, STATUS_LABEL } from "@/lib/status";
 import { recordPayment, setStudentActive } from "@/lib/actions";
+import { formatCurrency, formatDate } from "@/lib/format";
 import type { Student } from "@/generated/prisma/client";
-
-const STATUS_STYLES = {
-  overdue: "bg-red-50 border-red-200 text-red-700",
-  due_soon: "bg-amber-50 border-amber-200 text-amber-700",
-  ok: "bg-emerald-50 border-emerald-200 text-emerald-700",
-} as const;
-
-const STATUS_LABEL = {
-  overdue: "Overdue",
-  due_soon: "Due soon",
-  ok: "On track",
-} as const;
-
-function formatCurrency(amount: number) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount);
-}
-
-function formatDate(date: Date) {
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(date);
-}
 
 function dueDateLabel(daysUntilDue: number, status: keyof typeof STATUS_LABEL) {
   if (status === "overdue") {
@@ -35,9 +17,9 @@ export default function StudentRow({ student }: { student: Student }) {
   const { status, daysUntilDue } = getPaymentStatus(student.nextDueDate);
 
   return (
-    <div className={`rounded-lg border p-4 ${STATUS_STYLES[status]}`}>
+    <div className={`rounded-lg border p-4 ${STATUS_BADGE_STYLES[status]}`}>
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
+        <Link href={`/students/${student.id}`} className="min-w-0 flex-1 hover:opacity-80">
           <div className="flex items-center gap-2">
             <h3 className="font-medium text-gray-900">{student.name}</h3>
             <span className="rounded-full border px-2 py-0.5 text-xs font-medium">
@@ -53,7 +35,7 @@ export default function StudentRow({ student }: { student: Student }) {
             Next due {formatDate(student.nextDueDate)} — {dueDateLabel(daysUntilDue, status)}
           </p>
           {student.notes ? <p className="mt-1 text-sm text-gray-500">{student.notes}</p> : null}
-        </div>
+        </Link>
 
         <div className="flex flex-col items-end gap-2">
           <form action={recordPayment} className="flex items-center gap-2">

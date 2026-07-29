@@ -1,7 +1,12 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import { createStudent } from "@/lib/actions";
 
 export default function NewStudentPage() {
+  const [firstMonthPaid, setFirstMonthPaid] = useState(false);
+
   return (
     <main className="mx-auto max-w-lg px-4 py-10">
       <Link href="/" className="text-sm text-gray-500 hover:underline">
@@ -49,21 +54,39 @@ export default function NewStudentPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="tuitionAmount" className="block text-sm font-medium text-gray-700">
-              Tuition amount ($/month)
-            </label>
-            <input
-              id="tuitionAmount"
-              name="tuitionAmount"
-              type="number"
-              step="0.01"
-              min="0.01"
-              required
-              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-            />
-          </div>
+        <div>
+          <label htmlFor="tuitionAmount" className="block text-sm font-medium text-gray-700">
+            Tuition amount ($/month)
+          </label>
+          <input
+            id="tuitionAmount"
+            name="tuitionAmount"
+            type="number"
+            step="0.01"
+            min="0.01"
+            required
+            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+          />
+        </div>
+
+        <div className="flex items-start gap-2 rounded-md border border-gray-200 bg-gray-50 p-3">
+          <input
+            id="firstMonthPaid"
+            name="firstMonthPaid"
+            type="checkbox"
+            checked={firstMonthPaid}
+            onChange={(e) => setFirstMonthPaid(e.target.checked)}
+            className="mt-0.5"
+          />
+          <label htmlFor="firstMonthPaid" className="text-sm text-gray-700">
+            First month&apos;s tuition was paid today
+            <span className="block text-xs text-gray-500">
+              Records today&apos;s payment and sets the next due date to one month from now.
+            </span>
+          </label>
+        </div>
+
+        {!firstMonthPaid && (
           <div>
             <label htmlFor="nextDueDate" className="block text-sm font-medium text-gray-700">
               Next payment due
@@ -76,7 +99,7 @@ export default function NewStudentPage() {
               className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
             />
           </div>
-        </div>
+        )}
 
         <div>
           <label htmlFor="notes" className="block text-sm font-medium text-gray-700">

@@ -4,6 +4,18 @@ export type PaymentStatus = "overdue" | "due_soon" | "ok";
 
 export const DUE_SOON_WINDOW_DAYS = 7;
 
+export const STATUS_BADGE_STYLES: Record<PaymentStatus, string> = {
+  overdue: "bg-red-50 border-red-200 text-red-700",
+  due_soon: "bg-amber-50 border-amber-200 text-amber-700",
+  ok: "bg-emerald-50 border-emerald-200 text-emerald-700",
+};
+
+export const STATUS_LABEL: Record<PaymentStatus, string> = {
+  overdue: "Overdue",
+  due_soon: "Due soon",
+  ok: "On track",
+};
+
 export function getPaymentStatus(
   nextDueDate: Date,
   today: Date = new Date(),
