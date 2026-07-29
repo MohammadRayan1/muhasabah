@@ -1,5 +1,6 @@
+import "dotenv/config";
 import * as readline from "node:readline";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { hashPassword } from "../src/lib/auth/password";
 
@@ -49,7 +50,7 @@ function askHidden(question: string): Promise<string> {
 }
 
 async function main() {
-  const adapter = new PrismaBetterSqlite3({ url: process.env.DATABASE_URL ?? "file:./dev.db" });
+  const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
   const prisma = new PrismaClient({ adapter });
 
   console.log("Create the teacher (admin) account for the tuition tracker.\n");
