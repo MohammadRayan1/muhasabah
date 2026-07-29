@@ -2,8 +2,11 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { createProgram, setProgramActive } from "@/lib/actions";
 import { formatCurrency } from "@/lib/format";
+import { requireTeacher } from "@/lib/auth/dal";
 
 export default async function ProgramsPage() {
+  await requireTeacher();
+
   const programs = await prisma.program.findMany({
     where: { active: true },
     orderBy: { createdAt: "asc" },

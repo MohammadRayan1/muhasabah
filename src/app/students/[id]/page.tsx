@@ -3,8 +3,12 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getPaymentStatus, STATUS_BADGE_STYLES, STATUS_LABEL } from "@/lib/status";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { requireTeacher } from "@/lib/auth/dal";
+import { createInvite } from "@/lib/actions";
 
 export default async function StudentProfilePage({ params }: { params: Promise<{ id: string }> }) {
+  await requireTeacher();
+
   const { id } = await params;
 
   const student = await prisma.student.findUnique({
@@ -12,10 +16,14 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
     include: {
       payments: { orderBy: { paidAt: "desc" } },
       enrollments: { include: { program: true } },
+      user: true,
+      invites: { where: { acceptedAt: null }, orderBy: { createdAt: "desc" } },
     },
   });
 
   if (!student) notFound();
+
+  const pendingInvite = student.invites.find((invite) => invite.expiresAt > new Date());
 
   const { status } = getPaymentStatus(student.nextDueDate);
   const totalPaid = student.payments.reduce((sum, p) => sum + p.amount, 0);
@@ -73,6 +81,45 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
           </div>
         </div>
       ) : null}
+
+      <div className="mb-8">
+        <h2 className="mb-3 text-lg font-medium text-gray-900">Portal Access</h2>
+        {student.user ? (
+          <div className="rounded-lg border border-gray-200 p-3">
+            <p className="text-sm text-gray-700">
+              Account active — <span className="font-medium">{student.user.email}</span>
+            </p>
+          </div>
+        ) : pendingInvite ? (
+          <div className="rounded-lg border border-gray-200 p-3">
+            <p className="text-sm text-gray-700">
+              Invite sent to <span className="font-medium">{pendingInvite.email}</span>, not yet
+              accepted.
+            </p>
+            <p className="mt-1 break-all text-xs text-gray-500">
+              {(process.env.APP_URL ?? "http://localhost:3000") + "/invite/" + pendingInvite.token}
+            </p>
+          </div>
+        ) : (
+          <form action={createInvite} className="flex items-center gap-2">
+            <input type="hidden" name="studentId" value={student.id} />
+            <input
+              type="email"
+              name="email"
+              placeholder="parent@example.com"
+              defaultValue={student.email ?? ""}
+              required
+              className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm"
+            />
+            <button
+              type="submit"
+              className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+            >
+              Send Invite
+            </button>
+          </form>
+        )}
+      </div>
 
       {student.notes ? (
         <p className="mb-8 rounded-md bg-gray-50 p-3 text-sm text-gray-600">{student.notes}</p>

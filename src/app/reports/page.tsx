@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { getMonthlyRevenue } from "@/lib/reports";
 import { formatCurrency } from "@/lib/format";
+import { requireTeacher } from "@/lib/auth/dal";
 
 export default async function ReportsPage() {
+  await requireTeacher();
+
   const months = await getMonthlyRevenue(6);
 
   return (

@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import NewStudentForm from "@/components/NewStudentForm";
+import { requireTeacher } from "@/lib/auth/dal";
 
 export default async function NewStudentPage() {
+  await requireTeacher();
+
   const programs = await prisma.program.findMany({
     where: { active: true },
     orderBy: { createdAt: "asc" },

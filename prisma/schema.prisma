@@ -26,8 +26,36 @@ model Student {
   notes         String?
   payments      Payment[]
   enrollments   Enrollment[]
+  invites       Invite[]
+  user          User?
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
+}
+
+enum Role {
+  TEACHER
+  MEMBER
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  role         Role      @default(MEMBER)
+  studentId    String?   @unique
+  student      Student?  @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  createdAt    DateTime  @default(now())
+}
+
+model Invite {
+  id         String    @id @default(cuid())
+  email      String
+  token      String    @unique
+  studentId  String
+  student    Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  acceptedAt DateTime?
+  expiresAt  DateTime
+  createdAt  DateTime  @default(now())
 }
 
 model Payment {

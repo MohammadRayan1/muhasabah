@@ -1,11 +1,16 @@
 "use server";
 
+import { randomBytes } from "crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { addMonths, parseDateOnly, startOfDay } from "@/lib/dates";
+import { requireTeacher } from "@/lib/auth/dal";
+import { sendInviteEmail } from "@/lib/email";
 
 export async function createStudent(formData: FormData) {
+  await requireTeacher();
+
   const name = String(formData.get("name") ?? "").trim();
   const phone = String(formData.get("phone") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
@@ -66,6 +71,8 @@ export async function createStudent(formData: FormData) {
 }
 
 export async function createProgram(formData: FormData) {
+  await requireTeacher();
+
   const name = String(formData.get("name") ?? "").trim();
   const days = String(formData.get("days") ?? "").trim();
   const time = String(formData.get("time") ?? "").trim();
@@ -88,6 +95,8 @@ export async function createProgram(formData: FormData) {
 }
 
 export async function setProgramActive(formData: FormData) {
+  await requireTeacher();
+
   const programId = String(formData.get("programId") ?? "");
   const active = String(formData.get("active") ?? "") === "true";
 
@@ -100,6 +109,8 @@ export async function setProgramActive(formData: FormData) {
 }
 
 export async function recordPayment(formData: FormData) {
+  await requireTeacher();
+
   const studentId = String(formData.get("studentId") ?? "");
   const amount = Number(formData.get("amount"));
 
@@ -122,6 +133,8 @@ export async function recordPayment(formData: FormData) {
 }
 
 export async function setStudentActive(formData: FormData) {
+  await requireTeacher();
+
   const studentId = String(formData.get("studentId") ?? "");
   const active = String(formData.get("active") ?? "") === "true";
 
@@ -130,4 +143,37 @@ export async function setStudentActive(formData: FormData) {
   await prisma.student.update({ where: { id: studentId }, data: { active } });
 
   revalidatePath("/");
+}
+
+export async function createInvite(formData: FormData) {
+  await requireTeacher();
+
+  const studentId = String(formData.get("studentId") ?? "");
+  const email = String(formData.get("email") ?? "")
+    .trim()
+    .toLowerCase();
+
+  if (!studentId) throw new Error("Missing student");
+  if (!email) throw new Error("Email is required");
+
+  const student = await prisma.student.findUniqueOrThrow({ where: { id: studentId } });
+
+  const existingUser = await prisma.user.findUnique({ where: { email } });
+  if (existingUser) {
+    throw new Error("An account with this email already exists");
+  }
+
+  const token = randomBytes(24).toString("hex");
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+  await prisma.invite.create({
+    data: { studentId, email, token, expiresAt },
+  });
+
+  const appUrl = process.env.APP_URL ?? "http://localhost:3000";
+  const inviteUrl = `${appUrl}/invite/${token}`;
+
+  await sendInviteEmail({ to: email, studentName: student.name, inviteUrl });
+
+  revalidatePath(`/students/${studentId}`);
 }

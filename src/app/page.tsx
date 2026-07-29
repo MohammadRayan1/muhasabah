@@ -1,10 +1,14 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getPaymentStatus } from "@/lib/status";
+import { requireTeacher } from "@/lib/auth/dal";
+import { logout } from "@/lib/auth-actions";
 import StudentRow from "@/components/StudentRow";
 import SummaryCard from "@/components/SummaryCard";
 
 export default async function Home() {
+  await requireTeacher();
+
   const students = await prisma.student.findMany({
     where: { active: true },
     orderBy: { nextDueDate: "asc" },
@@ -36,6 +40,11 @@ export default async function Home() {
           >
             + Add Student
           </Link>
+          <form action={logout}>
+            <button type="submit" className="text-sm text-gray-400 hover:text-gray-600 hover:underline">
+              Log out
+            </button>
+          </form>
         </div>
       </div>
 
