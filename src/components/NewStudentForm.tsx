@@ -1,11 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useState } from "react";
 import { createStudent } from "@/lib/actions";
 import { formatCurrency } from "@/lib/format";
+import { initialActionState } from "@/lib/action-state";
+import FormError from "@/components/FormError";
 import type { Program } from "@/generated/prisma/client";
 
 export default function NewStudentForm({ programs }: { programs: Program[] }) {
+  const [state, formAction, pending] = useActionState(createStudent, initialActionState);
   const [selectedProgramIds, setSelectedProgramIds] = useState<Set<string>>(new Set());
   const [tuitionAmount, setTuitionAmount] = useState("");
   const [firstMonthPaid, setFirstMonthPaid] = useState(false);
@@ -32,7 +35,9 @@ export default function NewStudentForm({ programs }: { programs: Program[] }) {
   const isCustomPrice = programTotal > 0 && parsedTuition !== programTotal;
 
   return (
-    <form action={createStudent} className="space-y-4">
+    <form action={formAction} className="space-y-4">
+      <FormError message={state.error} />
+
       <div>
         <label htmlFor="name" className="block text-sm font-medium text-stone-700">
           Name
@@ -184,9 +189,10 @@ export default function NewStudentForm({ programs }: { programs: Program[] }) {
 
       <button
         type="submit"
-        className="w-full rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700"
+        disabled={pending}
+        className="min-h-11 w-full rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:opacity-60"
       >
-        Add Student
+        {pending ? "Adding…" : "Add Student"}
       </button>
     </form>
   );

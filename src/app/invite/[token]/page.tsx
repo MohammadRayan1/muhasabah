@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { acceptInvite } from "@/lib/auth-actions";
+import AcceptInviteForm from "@/components/AcceptInviteForm";
 
 export default async function InvitePage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
@@ -31,44 +31,7 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
         Creating an account for {invite.student.name} — {invite.email}
       </p>
 
-      <form action={acceptInvite} className="space-y-4">
-        <input type="hidden" name="token" value={token} />
-
-        <div>
-          <label htmlFor="password" className="block text-sm font-medium text-stone-700">
-            Password
-          </label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            minLength={8}
-            required
-            className="mt-1 w-full rounded-xl border border-stone-300 px-3 py-2 text-sm"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="confirmPassword" className="block text-sm font-medium text-stone-700">
-            Confirm password
-          </label>
-          <input
-            id="confirmPassword"
-            name="confirmPassword"
-            type="password"
-            minLength={8}
-            required
-            className="mt-1 w-full rounded-xl border border-stone-300 px-3 py-2 text-sm"
-          />
-        </div>
-
-        <button
-          type="submit"
-          className="w-full rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700"
-        >
-          Create account
-        </button>
-      </form>
+      <AcceptInviteForm token={token} />
     </main>
   );
 }

@@ -4,20 +4,21 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { createSession, deleteSession } from "@/lib/auth/session";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
+import type { ActionState } from "@/lib/action-state";
 
-export async function login(formData: FormData) {
+export async function login(_prevState: ActionState, formData: FormData): Promise<ActionState> {
   const email = String(formData.get("email") ?? "")
     .trim()
     .toLowerCase();
   const password = String(formData.get("password") ?? "");
 
   if (!email || !password) {
-    throw new Error("Email and password are required");
+    return { error: "Email and password are required" };
   }
 
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user || !(await verifyPassword(password, user.passwordHash))) {
-    throw new Error("Invalid email or password");
+    return { error: "Invalid email or password" };
   }
 
   await createSession(user.id, user.role);
@@ -29,27 +30,30 @@ export async function logout() {
   redirect("/login");
 }
 
-export async function acceptInvite(formData: FormData) {
+export async function acceptInvite(
+  _prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
   const token = String(formData.get("token") ?? "");
   const password = String(formData.get("password") ?? "");
   const confirmPassword = String(formData.get("confirmPassword") ?? "");
 
-  if (!token) throw new Error("Missing invite token");
+  if (!token) return { error: "Missing invite token" };
   if (password.length < 8) {
-    throw new Error("Password must be at least 8 characters");
+    return { error: "Password must be at least 8 characters" };
   }
   if (password !== confirmPassword) {
-    throw new Error("Passwords do not match");
+    return { error: "Passwords do not match" };
   }
 
   const invite = await prisma.invite.findUnique({ where: { token } });
   if (!invite || invite.acceptedAt || invite.expiresAt < new Date()) {
-    throw new Error("This invite link is invalid or has expired");
+    return { error: "This invite link is invalid or has expired" };
   }
 
   const existingUser = await prisma.user.findUnique({ where: { email: invite.email } });
   if (existingUser) {
-    throw new Error("An account with this email already exists. Log in instead.");
+    return { error: "An account with this email already exists. Log in instead." };
   }
 
   const passwordHash = await hashPassword(password);

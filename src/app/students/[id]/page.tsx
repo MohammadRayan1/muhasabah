@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getPaymentStatus, STATUS_BADGE_STYLES, STATUS_LABEL } from "@/lib/status";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { requireTeacher } from "@/lib/auth/dal";
-import { createInvite } from "@/lib/actions";
+import SendInviteForm from "@/components/SendInviteForm";
 
 export default async function StudentProfilePage({ params }: { params: Promise<{ id: string }> }) {
   await requireTeacher();
@@ -101,23 +101,7 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
             </p>
           </div>
         ) : (
-          <form action={createInvite} className="flex items-center gap-2">
-            <input type="hidden" name="studentId" value={student.id} />
-            <input
-              type="email"
-              name="email"
-              placeholder="parent@example.com"
-              defaultValue={student.email ?? ""}
-              required
-              className="flex-1 rounded-xl border border-stone-300 px-3 py-2 text-sm"
-            />
-            <button
-              type="submit"
-              className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700"
-            >
-              Send Invite
-            </button>
-          </form>
+          <SendInviteForm studentId={student.id} defaultEmail={student.email ?? ""} />
         )}
       </div>
 

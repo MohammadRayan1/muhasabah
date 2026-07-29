@@ -1,12 +1,21 @@
+"use client";
+
+import { useActionState } from "react";
 import { login } from "@/lib/auth-actions";
+import { initialActionState } from "@/lib/action-state";
+import FormError from "@/components/FormError";
 
 export default function LoginPage() {
+  const [state, formAction, pending] = useActionState(login, initialActionState);
+
   return (
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center px-4">
       <p className="mb-1 text-sm font-medium text-emerald-700">Muhasabah</p>
       <h1 className="mb-6 text-2xl font-semibold text-stone-900">Log in</h1>
 
-      <form action={login} className="space-y-4">
+      <form action={formAction} className="space-y-4">
+        <FormError message={state.error} />
+
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-stone-700">
             Email
@@ -35,9 +44,10 @@ export default function LoginPage() {
 
         <button
           type="submit"
-          className="w-full rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700"
+          disabled={pending}
+          className="min-h-11 w-full rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:opacity-60"
         >
-          Log in
+          {pending ? "Logging in…" : "Log in"}
         </button>
       </form>
     </main>

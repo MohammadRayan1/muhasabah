@@ -41,20 +41,20 @@ export default async function Home() {
         <div className="flex items-center gap-1 rounded-full bg-stone-100 p-1">
           <Link
             href="/programs"
-            className="rounded-full px-4 py-2 text-sm font-semibold text-stone-600 transition-colors hover:bg-white hover:text-stone-900 hover:shadow-sm"
+            className="inline-flex min-h-11 items-center rounded-full px-4 py-2 text-sm font-semibold text-stone-600 transition-colors hover:bg-white hover:text-stone-900 hover:shadow-sm"
           >
             Programs
           </Link>
           <Link
             href="/reports"
-            className="rounded-full px-4 py-2 text-sm font-semibold text-stone-600 transition-colors hover:bg-white hover:text-stone-900 hover:shadow-sm"
+            className="inline-flex min-h-11 items-center rounded-full px-4 py-2 text-sm font-semibold text-stone-600 transition-colors hover:bg-white hover:text-stone-900 hover:shadow-sm"
           >
             Monthly Revenue
           </Link>
         </div>
         <Link
           href="/students/new"
-          className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
+          className="inline-flex min-h-11 items-center justify-center rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
         >
           + Add Student
         </Link>

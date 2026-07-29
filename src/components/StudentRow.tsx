@@ -55,11 +55,11 @@ export default function StudentRow({ student }: { student: StudentWithPrograms }
               min="0.01"
               defaultValue={student.tuitionAmount}
               required
-              className="w-24 rounded-xl border border-stone-300 bg-white px-2 py-1 text-sm text-stone-900"
+              className="min-h-11 w-24 rounded-xl border border-stone-300 bg-white px-2 py-1 text-sm text-stone-900"
             />
             <button
               type="submit"
-              className="rounded-xl bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-emerald-700"
+              className="min-h-11 rounded-xl bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-emerald-700"
             >
               Mark paid
             </button>

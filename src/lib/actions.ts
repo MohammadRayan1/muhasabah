@@ -7,8 +7,12 @@ import { prisma } from "@/lib/prisma";
 import { addMonths, parseDateOnly, startOfDay } from "@/lib/dates";
 import { requireTeacher } from "@/lib/auth/dal";
 import { sendInviteEmail } from "@/lib/email";
+import type { ActionState } from "@/lib/action-state";
 
-export async function createStudent(formData: FormData) {
+export async function createStudent(
+  _prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
   await requireTeacher();
 
   const name = String(formData.get("name") ?? "").trim();
@@ -21,9 +25,9 @@ export async function createStudent(formData: FormData) {
   const priceNote = String(formData.get("priceNote") ?? "").trim();
   const programIds = formData.getAll("programIds").map(String).filter(Boolean);
 
-  if (!name) throw new Error("Name is required");
+  if (!name) return { error: "Name is required" };
   if (!Number.isFinite(tuitionAmount) || tuitionAmount <= 0) {
-    throw new Error("Tuition amount must be a positive number");
+    return { error: "Tuition amount must be a positive number" };
   }
 
   let nextDueDate: Date;
@@ -31,11 +35,11 @@ export async function createStudent(formData: FormData) {
     nextDueDate = addMonths(startOfDay(new Date()), 1);
   } else {
     if (!nextDueDateRaw) {
-      throw new Error("A valid next payment due date is required");
+      return { error: "A valid next payment due date is required" };
     }
     nextDueDate = parseDateOnly(nextDueDateRaw);
     if (Number.isNaN(nextDueDate.getTime())) {
-      throw new Error("A valid next payment due date is required");
+      return { error: "A valid next payment due date is required" };
     }
   }
 
@@ -145,7 +149,10 @@ export async function setStudentActive(formData: FormData) {
   revalidatePath("/");
 }
 
-export async function createInvite(formData: FormData) {
+export async function createInvite(
+  _prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
   await requireTeacher();
 
   const studentId = String(formData.get("studentId") ?? "");
@@ -153,14 +160,14 @@ export async function createInvite(formData: FormData) {
     .trim()
     .toLowerCase();
 
-  if (!studentId) throw new Error("Missing student");
-  if (!email) throw new Error("Email is required");
+  if (!studentId) return { error: "Missing student" };
+  if (!email) return { error: "Email is required" };
 
   const student = await prisma.student.findUniqueOrThrow({ where: { id: studentId } });
 
   const existingUser = await prisma.user.findUnique({ where: { email } });
   if (existingUser) {
-    throw new Error("An account with this email already exists");
+    return { error: "An account with this email already exists" };
   }
 
   const token = randomBytes(24).toString("hex");
@@ -176,4 +183,5 @@ export async function createInvite(formData: FormData) {
   await sendInviteEmail({ to: email, studentName: student.name, inviteUrl });
 
   revalidatePath(`/students/${studentId}`);
+  return {};
 }
