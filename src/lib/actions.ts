@@ -149,6 +149,48 @@ export async function setStudentActive(formData: FormData) {
   revalidatePath("/");
 }
 
+export async function updateStudentPrograms(
+  _prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  await requireTeacher();
+
+  const studentId = String(formData.get("studentId") ?? "");
+  const tuitionAmount = Number(formData.get("tuitionAmount"));
+  const programIds = formData.getAll("programIds").map(String).filter(Boolean);
+
+  if (!studentId) return { error: "Missing student" };
+  if (!Number.isFinite(tuitionAmount) || tuitionAmount <= 0) {
+    return { error: "Tuition amount must be a positive number" };
+  }
+
+  const existingEnrollments = await prisma.enrollment.findMany({
+    where: { studentId },
+    select: { programId: true },
+  });
+  const existingProgramIds = new Set(existingEnrollments.map((e) => e.programId));
+  const programIdSet = new Set(programIds);
+  const toAdd = programIds.filter((programId) => !existingProgramIds.has(programId));
+  const toRemove = [...existingProgramIds].filter((programId) => !programIdSet.has(programId));
+
+  await prisma.$transaction([
+    prisma.enrollment.deleteMany({
+      where: { studentId, programId: { in: toRemove } },
+    }),
+    prisma.enrollment.createMany({
+      data: toAdd.map((programId) => ({ studentId, programId })),
+    }),
+    prisma.student.update({
+      where: { id: studentId },
+      data: { tuitionAmount },
+    }),
+  ]);
+
+  revalidatePath(`/students/${studentId}`);
+  revalidatePath("/");
+  return {};
+}
+
 export async function createInvite(
   _prevState: ActionState,
   formData: FormData,

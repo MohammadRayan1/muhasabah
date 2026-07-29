@@ -4,6 +4,7 @@ import { getPaymentStatus, STATUS_BADGE_STYLES, STATUS_LABEL } from "@/lib/statu
 import { formatCurrency, formatDate } from "@/lib/format";
 import { requireTeacher } from "@/lib/auth/dal";
 import SendInviteForm from "@/components/SendInviteForm";
+import EditProgramsForm from "@/components/EditProgramsForm";
 import Avatar from "@/components/Avatar";
 
 export default async function StudentProfilePage({ params }: { params: Promise<{ id: string }> }) {
@@ -11,15 +12,18 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
 
   const { id } = await params;
 
-  const student = await prisma.student.findUnique({
-    where: { id },
-    include: {
-      payments: { orderBy: { paidAt: "desc" } },
-      enrollments: { include: { program: true } },
-      user: true,
-      invites: { where: { acceptedAt: null }, orderBy: { createdAt: "desc" } },
-    },
-  });
+  const [student, activePrograms] = await Promise.all([
+    prisma.student.findUnique({
+      where: { id },
+      include: {
+        payments: { orderBy: { paidAt: "desc" } },
+        enrollments: { include: { program: true } },
+        user: true,
+        invites: { where: { acceptedAt: null }, orderBy: { createdAt: "desc" } },
+      },
+    }),
+    prisma.program.findMany({ where: { active: true }, orderBy: { createdAt: "asc" } }),
+  ]);
 
   if (!student) notFound();
 
@@ -65,21 +69,16 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
         </div>
       </div>
 
-      {student.enrollments.length > 0 ? (
-        <div className="mb-8">
-          <h2 className="mb-3 text-lg font-medium text-stone-900">Programs</h2>
-          <div className="space-y-2">
-            {student.enrollments.map((enrollment) => (
-              <div key={enrollment.id} className="rounded-2xl border border-stone-200 bg-white shadow-sm shadow-stone-900/5 p-3">
-                <p className="font-medium text-stone-900">{enrollment.program.name}</p>
-                <p className="text-sm text-stone-500">
-                  {enrollment.program.days} · {enrollment.program.time} · {enrollment.program.location}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
+      <div className="mb-8">
+        <h2 className="mb-3 text-lg font-medium text-stone-900">Programs</h2>
+        <EditProgramsForm
+          key={student.updatedAt.toISOString()}
+          studentId={student.id}
+          tuitionAmount={student.tuitionAmount}
+          programs={activePrograms}
+          enrolledProgramIds={student.enrollments.map((e) => e.programId)}
+        />
+      </div>
 
       <div className="mb-8">
         <h2 className="mb-3 text-lg font-medium text-stone-900">Portal Access</h2>
