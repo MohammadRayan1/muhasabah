@@ -8,7 +8,7 @@ const nunito = Nunito({
 });
 
 export const metadata: Metadata = {
-  title: "Quran Class Tuition Tracker",
+  title: "Muhasabah",
   description: "Track student tuition payments and due dates",
 };
 

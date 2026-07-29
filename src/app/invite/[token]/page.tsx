@@ -25,6 +25,7 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
 
   return (
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center px-4">
+      <p className="mb-1 text-sm font-medium text-emerald-700">Muhasabah</p>
       <h1 className="text-2xl font-semibold text-stone-900">Set up your account</h1>
       <p className="mt-1 mb-6 text-sm text-stone-500">
         Creating an account for {invite.student.name} — {invite.email}

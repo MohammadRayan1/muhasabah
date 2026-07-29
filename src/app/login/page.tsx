@@ -3,6 +3,7 @@ import { login } from "@/lib/auth-actions";
 export default function LoginPage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center px-4">
+      <p className="mb-1 text-sm font-medium text-emerald-700">Muhasabah</p>
       <h1 className="mb-6 text-2xl font-semibold text-stone-900">Log in</h1>
 
       <form action={login} className="space-y-4">

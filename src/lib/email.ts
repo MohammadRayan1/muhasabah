@@ -16,7 +16,7 @@ export async function sendInviteEmail(options: {
 
   const resend = new Resend(apiKey);
   await resend.emails.send({
-    from: "Quran Class Tuition <onboarding@resend.dev>",
+    from: "Muhasabah <onboarding@resend.dev>",
     to,
     subject: `You're invited to the ${studentName} tuition portal`,
     html: `

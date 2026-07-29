@@ -24,7 +24,7 @@ export default async function Home() {
     <main className="mx-auto max-w-3xl px-4 py-10">
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-stone-900">Quran Class Tuition</h1>
+          <h1 className="text-2xl font-semibold text-stone-900">Muhasabah</h1>
           <p className="text-sm text-stone-500">Track student payments and upcoming due dates</p>
         </div>
         <div className="flex items-center gap-3">
