@@ -34,7 +34,7 @@ export default function NewStudentForm({ programs }: { programs: Program[] }) {
   return (
     <form action={createStudent} className="space-y-4">
       <div>
-        <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="name" className="block text-sm font-medium text-stone-700">
           Name
         </label>
         <input
@@ -42,43 +42,43 @@ export default function NewStudentForm({ programs }: { programs: Program[] }) {
           name="name"
           type="text"
           required
-          className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+          className="mt-1 w-full rounded-xl border border-stone-300 px-3 py-2 text-sm"
         />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="phone" className="block text-sm font-medium text-stone-700">
             Phone
           </label>
           <input
             id="phone"
             name="phone"
             type="tel"
-            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-xl border border-stone-300 px-3 py-2 text-sm"
           />
         </div>
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="email" className="block text-sm font-medium text-stone-700">
             Email
           </label>
           <input
             id="email"
             name="email"
             type="email"
-            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-xl border border-stone-300 px-3 py-2 text-sm"
           />
         </div>
       </div>
 
       {programs.length > 0 ? (
         <div>
-          <span className="block text-sm font-medium text-gray-700">Programs</span>
+          <span className="block text-sm font-medium text-stone-700">Programs</span>
           <div className="mt-1 space-y-2">
             {programs.map((program) => (
               <label
                 key={program.id}
-                className="flex items-start gap-2 rounded-md border border-gray-200 p-3"
+                className="flex items-start gap-2 rounded-xl border border-stone-200 p-3"
               >
                 <input
                   type="checkbox"
@@ -88,9 +88,9 @@ export default function NewStudentForm({ programs }: { programs: Program[] }) {
                   onChange={(e) => handleProgramToggle(program, e.target.checked)}
                   className="mt-0.5"
                 />
-                <span className="text-sm text-gray-700">
-                  <span className="font-medium text-gray-900">{program.name}</span>
-                  <span className="block text-xs text-gray-500">
+                <span className="text-sm text-stone-700">
+                  <span className="font-medium text-stone-900">{program.name}</span>
+                  <span className="block text-xs text-stone-500">
                     {program.days} · {program.time} · {program.location} ·{" "}
                     {formatCurrency(program.price)}/mo
                   </span>
@@ -102,7 +102,7 @@ export default function NewStudentForm({ programs }: { programs: Program[] }) {
       ) : null}
 
       <div>
-        <label htmlFor="tuitionAmount" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="tuitionAmount" className="block text-sm font-medium text-stone-700">
           Tuition amount ($/month)
         </label>
         <input
@@ -114,10 +114,10 @@ export default function NewStudentForm({ programs }: { programs: Program[] }) {
           required
           value={tuitionAmount}
           onChange={(e) => setTuitionAmount(e.target.value)}
-          className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+          className="mt-1 w-full rounded-xl border border-stone-300 px-3 py-2 text-sm"
         />
         {programs.length > 0 ? (
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-stone-500">
             Auto-filled from selected programs — edit if this student gets a different rate.
           </p>
         ) : null}
@@ -125,7 +125,7 @@ export default function NewStudentForm({ programs }: { programs: Program[] }) {
 
       {isCustomPrice && (
         <div>
-          <label htmlFor="priceNote" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="priceNote" className="block text-sm font-medium text-stone-700">
             Reason for custom price
           </label>
           <input
@@ -133,12 +133,12 @@ export default function NewStudentForm({ programs }: { programs: Program[] }) {
             name="priceNote"
             type="text"
             placeholder="e.g. financial aid, sibling discount"
-            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-xl border border-stone-300 px-3 py-2 text-sm"
           />
         </div>
       )}
 
-      <div className="flex items-start gap-2 rounded-md border border-gray-200 bg-gray-50 p-3">
+      <div className="flex items-start gap-2 rounded-xl border border-stone-200 bg-stone-50 p-3">
         <input
           id="firstMonthPaid"
           name="firstMonthPaid"
@@ -147,9 +147,9 @@ export default function NewStudentForm({ programs }: { programs: Program[] }) {
           onChange={(e) => setFirstMonthPaid(e.target.checked)}
           className="mt-0.5"
         />
-        <label htmlFor="firstMonthPaid" className="text-sm text-gray-700">
+        <label htmlFor="firstMonthPaid" className="text-sm text-stone-700">
           First month&apos;s tuition was paid today
-          <span className="block text-xs text-gray-500">
+          <span className="block text-xs text-stone-500">
             Records today&apos;s payment and sets the next due date to one month from now.
           </span>
         </label>
@@ -157,7 +157,7 @@ export default function NewStudentForm({ programs }: { programs: Program[] }) {
 
       {!firstMonthPaid && (
         <div>
-          <label htmlFor="nextDueDate" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="nextDueDate" className="block text-sm font-medium text-stone-700">
             Next payment due
           </label>
           <input
@@ -165,26 +165,26 @@ export default function NewStudentForm({ programs }: { programs: Program[] }) {
             name="nextDueDate"
             type="date"
             required
-            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-xl border border-stone-300 px-3 py-2 text-sm"
           />
         </div>
       )}
 
       <div>
-        <label htmlFor="notes" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="notes" className="block text-sm font-medium text-stone-700">
           Notes (optional)
         </label>
         <textarea
           id="notes"
           name="notes"
           rows={3}
-          className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+          className="mt-1 w-full rounded-xl border border-stone-300 px-3 py-2 text-sm"
         />
       </div>
 
       <button
         type="submit"
-        className="w-full rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+        className="w-full rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700"
       >
         Add Student
       </button>

@@ -30,14 +30,14 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-10">
-      <Link href="/" className="text-sm text-gray-500 hover:underline">
+      <Link href="/" className="text-sm text-stone-500 hover:underline">
         ← Back to dashboard
       </Link>
 
       <div className="mt-4 mb-6 flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">{student.name}</h1>
-          <p className="text-sm text-gray-500">
+          <h1 className="text-2xl font-semibold text-stone-900">{student.name}</h1>
+          <p className="text-sm text-stone-500">
             {[student.phone, student.email].filter(Boolean).join(" · ") || "No contact info"}
           </p>
         </div>
@@ -49,31 +49,31 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
       </div>
 
       <div className="mb-8 grid grid-cols-3 gap-4">
-        <div className="rounded-lg border border-gray-200 p-4">
-          <p className="text-lg font-semibold text-gray-900">{formatCurrency(student.tuitionAmount)}</p>
-          <p className="text-sm text-gray-500">Tuition / month</p>
+        <div className="rounded-2xl border border-stone-200 bg-white shadow-sm shadow-stone-900/5 p-4">
+          <p className="text-lg font-semibold text-stone-900">{formatCurrency(student.tuitionAmount)}</p>
+          <p className="text-sm text-stone-500">Tuition / month</p>
           {student.priceNote ? (
             <p className="mt-1 text-xs text-amber-700">{student.priceNote}</p>
           ) : null}
         </div>
-        <div className="rounded-lg border border-gray-200 p-4">
-          <p className="text-lg font-semibold text-gray-900">{formatDate(student.nextDueDate)}</p>
-          <p className="text-sm text-gray-500">Next due</p>
+        <div className="rounded-2xl border border-stone-200 bg-white shadow-sm shadow-stone-900/5 p-4">
+          <p className="text-lg font-semibold text-stone-900">{formatDate(student.nextDueDate)}</p>
+          <p className="text-sm text-stone-500">Next due</p>
         </div>
-        <div className="rounded-lg border border-gray-200 p-4">
-          <p className="text-lg font-semibold text-gray-900">{formatCurrency(totalPaid)}</p>
-          <p className="text-sm text-gray-500">Total paid</p>
+        <div className="rounded-2xl border border-stone-200 bg-white shadow-sm shadow-stone-900/5 p-4">
+          <p className="text-lg font-semibold text-stone-900">{formatCurrency(totalPaid)}</p>
+          <p className="text-sm text-stone-500">Total paid</p>
         </div>
       </div>
 
       {student.enrollments.length > 0 ? (
         <div className="mb-8">
-          <h2 className="mb-3 text-lg font-medium text-gray-900">Programs</h2>
+          <h2 className="mb-3 text-lg font-medium text-stone-900">Programs</h2>
           <div className="space-y-2">
             {student.enrollments.map((enrollment) => (
-              <div key={enrollment.id} className="rounded-lg border border-gray-200 p-3">
-                <p className="font-medium text-gray-900">{enrollment.program.name}</p>
-                <p className="text-sm text-gray-500">
+              <div key={enrollment.id} className="rounded-2xl border border-stone-200 bg-white shadow-sm shadow-stone-900/5 p-3">
+                <p className="font-medium text-stone-900">{enrollment.program.name}</p>
+                <p className="text-sm text-stone-500">
                   {enrollment.program.days} · {enrollment.program.time} · {enrollment.program.location}
                 </p>
               </div>
@@ -83,20 +83,20 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
       ) : null}
 
       <div className="mb-8">
-        <h2 className="mb-3 text-lg font-medium text-gray-900">Portal Access</h2>
+        <h2 className="mb-3 text-lg font-medium text-stone-900">Portal Access</h2>
         {student.user ? (
-          <div className="rounded-lg border border-gray-200 p-3">
-            <p className="text-sm text-gray-700">
+          <div className="rounded-2xl border border-stone-200 bg-white shadow-sm shadow-stone-900/5 p-3">
+            <p className="text-sm text-stone-700">
               Account active — <span className="font-medium">{student.user.email}</span>
             </p>
           </div>
         ) : pendingInvite ? (
-          <div className="rounded-lg border border-gray-200 p-3">
-            <p className="text-sm text-gray-700">
+          <div className="rounded-2xl border border-stone-200 bg-white shadow-sm shadow-stone-900/5 p-3">
+            <p className="text-sm text-stone-700">
               Invite sent to <span className="font-medium">{pendingInvite.email}</span>, not yet
               accepted.
             </p>
-            <p className="mt-1 break-all text-xs text-gray-500">
+            <p className="mt-1 break-all text-xs text-stone-500">
               {(process.env.APP_URL ?? "http://localhost:3000") + "/invite/" + pendingInvite.token}
             </p>
           </div>
@@ -109,11 +109,11 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
               placeholder="parent@example.com"
               defaultValue={student.email ?? ""}
               required
-              className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm"
+              className="flex-1 rounded-xl border border-stone-300 px-3 py-2 text-sm"
             />
             <button
               type="submit"
-              className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+              className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700"
             >
               Send Invite
             </button>
@@ -122,27 +122,27 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
       </div>
 
       {student.notes ? (
-        <p className="mb-8 rounded-md bg-gray-50 p-3 text-sm text-gray-600">{student.notes}</p>
+        <p className="mb-8 rounded-xl bg-stone-50 p-3 text-sm text-stone-600">{student.notes}</p>
       ) : null}
 
-      <h2 className="mb-3 text-lg font-medium text-gray-900">Payment History</h2>
+      <h2 className="mb-3 text-lg font-medium text-stone-900">Payment History</h2>
 
       {student.payments.length === 0 ? (
-        <p className="text-sm text-gray-500">No payments recorded yet.</p>
+        <p className="text-sm text-stone-500">No payments recorded yet.</p>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-gray-200">
+        <div className="overflow-x-auto rounded-2xl border border-stone-200 bg-white shadow-sm shadow-stone-900/5">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-left text-gray-500">
+            <thead className="bg-stone-50 text-left text-stone-500">
               <tr>
                 <th className="px-4 py-2 font-medium">Date</th>
                 <th className="px-4 py-2 text-right font-medium">Amount</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-stone-200">
               {student.payments.map((payment) => (
                 <tr key={payment.id}>
-                  <td className="px-4 py-3 text-gray-900">{formatDate(payment.paidAt)}</td>
-                  <td className="px-4 py-3 text-right text-gray-700">{formatCurrency(payment.amount)}</td>
+                  <td className="px-4 py-3 text-stone-900">{formatDate(payment.paidAt)}</td>
+                  <td className="px-4 py-3 text-right text-stone-700">{formatCurrency(payment.amount)}</td>
                 </tr>
               ))}
             </tbody>

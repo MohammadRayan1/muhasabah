@@ -24,24 +24,24 @@ export default async function Home() {
     <main className="mx-auto max-w-3xl px-4 py-10">
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Quran Class Tuition</h1>
-          <p className="text-sm text-gray-500">Track student payments and upcoming due dates</p>
+          <h1 className="text-2xl font-semibold text-stone-900">Quran Class Tuition</h1>
+          <p className="text-sm text-stone-500">Track student payments and upcoming due dates</p>
         </div>
         <div className="flex items-center gap-3">
-          <Link href="/programs" className="text-sm text-gray-500 hover:underline">
+          <Link href="/programs" className="text-sm text-stone-500 hover:underline">
             Programs →
           </Link>
-          <Link href="/reports" className="text-sm text-gray-500 hover:underline">
+          <Link href="/reports" className="text-sm text-stone-500 hover:underline">
             Monthly Revenue →
           </Link>
           <Link
             href="/students/new"
-            className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+            className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700"
           >
             + Add Student
           </Link>
           <form action={logout}>
-            <button type="submit" className="text-sm text-gray-400 hover:text-gray-600 hover:underline">
+            <button type="submit" className="text-sm text-stone-400 hover:text-stone-600 hover:underline">
               Log out
             </button>
           </form>
@@ -55,7 +55,7 @@ export default async function Home() {
       </div>
 
       {students.length === 0 ? (
-        <p className="text-gray-500">No students yet. Add your first student to get started.</p>
+        <p className="text-stone-500">No students yet. Add your first student to get started.</p>
       ) : (
         <div className="space-y-3">
           {sorted.map((student) => (

@@ -14,7 +14,7 @@ export default function SummaryCard({
   color: keyof typeof COLOR_STYLES;
 }) {
   return (
-    <div className={`rounded-lg border p-4 ${COLOR_STYLES[color]}`}>
+    <div className={`rounded-2xl border p-4 shadow-sm shadow-stone-900/5 ${COLOR_STYLES[color]}`}>
       <p className="text-2xl font-semibold">{count}</p>
       <p className="text-sm">{label}</p>
     </div>
