@@ -14,7 +14,11 @@ export default async function ReportsPage() {
         ← Back to dashboard
       </Link>
 
-      <h1 className="mt-4 mb-6 text-2xl font-semibold text-stone-900">Monthly Revenue</h1>
+      <h1 className="mt-4 text-2xl font-semibold text-stone-900">Monthly Revenue</h1>
+      <p className="mb-6 text-sm text-stone-500">
+        Click a month to see exactly which payments make up its total — including from students
+        who&apos;ve since been removed.
+      </p>
 
       <div className="overflow-x-auto rounded-2xl border border-stone-200 bg-white shadow-sm shadow-stone-900/5">
         <table className="w-full text-sm">
@@ -30,8 +34,12 @@ export default async function ReportsPage() {
             {months.map((m) => {
               const diff = m.collected - m.expected;
               return (
-                <tr key={m.label}>
-                  <td className="px-4 py-3 text-stone-900">{m.label}</td>
+                <tr key={m.slug} className="cursor-pointer hover:bg-stone-50">
+                  <td className="p-0">
+                    <Link href={`/reports/${m.slug}`} className="block px-4 py-3 text-stone-900">
+                      {m.label} →
+                    </Link>
+                  </td>
                   <td className="px-4 py-3 text-right text-stone-700">{formatCurrency(m.expected)}</td>
                   <td className="px-4 py-3 text-right text-stone-700">{formatCurrency(m.collected)}</td>
                   <td
