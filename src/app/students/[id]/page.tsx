@@ -9,7 +9,10 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
 
   const student = await prisma.student.findUnique({
     where: { id },
-    include: { payments: { orderBy: { paidAt: "desc" } } },
+    include: {
+      payments: { orderBy: { paidAt: "desc" } },
+      enrollments: { include: { program: true } },
+    },
   });
 
   if (!student) notFound();
@@ -51,6 +54,22 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
           <p className="text-sm text-gray-500">Total paid</p>
         </div>
       </div>
+
+      {student.enrollments.length > 0 ? (
+        <div className="mb-8">
+          <h2 className="mb-3 text-lg font-medium text-gray-900">Programs</h2>
+          <div className="space-y-2">
+            {student.enrollments.map((enrollment) => (
+              <div key={enrollment.id} className="rounded-lg border border-gray-200 p-3">
+                <p className="font-medium text-gray-900">{enrollment.program.name}</p>
+                <p className="text-sm text-gray-500">
+                  {enrollment.program.days} · {enrollment.program.time} · {enrollment.program.location}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       {student.notes ? (
         <p className="mb-8 rounded-md bg-gray-50 p-3 text-sm text-gray-600">{student.notes}</p>

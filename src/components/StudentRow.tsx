@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getPaymentStatus, STATUS_BADGE_STYLES, STATUS_LABEL } from "@/lib/status";
 import { recordPayment, setStudentActive } from "@/lib/actions";
 import { formatCurrency, formatDate } from "@/lib/format";
-import type { Student } from "@/generated/prisma/client";
+import type { Student, Program } from "@/generated/prisma/client";
 
 function dueDateLabel(daysUntilDue: number, status: keyof typeof STATUS_LABEL) {
   if (status === "overdue") {
@@ -13,7 +13,9 @@ function dueDateLabel(daysUntilDue: number, status: keyof typeof STATUS_LABEL) {
   return `Due in ${daysUntilDue} day${daysUntilDue === 1 ? "" : "s"}`;
 }
 
-export default function StudentRow({ student }: { student: Student }) {
+type StudentWithPrograms = Student & { enrollments: { program: Program }[] };
+
+export default function StudentRow({ student }: { student: StudentWithPrograms }) {
   const { status, daysUntilDue } = getPaymentStatus(student.nextDueDate);
 
   return (
@@ -34,6 +36,11 @@ export default function StudentRow({ student }: { student: Student }) {
           <p className="mt-1 text-sm">
             Next due {formatDate(student.nextDueDate)} — {dueDateLabel(daysUntilDue, status)}
           </p>
+          {student.enrollments.length > 0 ? (
+            <p className="mt-1 text-xs text-gray-500">
+              {student.enrollments.map((e) => e.program.name).join(", ")}
+            </p>
+          ) : null}
           {student.notes ? <p className="mt-1 text-sm text-gray-500">{student.notes}</p> : null}
         </Link>
 

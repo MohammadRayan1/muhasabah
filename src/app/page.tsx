@@ -8,6 +8,7 @@ export default async function Home() {
   const students = await prisma.student.findMany({
     where: { active: true },
     orderBy: { nextDueDate: "asc" },
+    include: { enrollments: { include: { program: true } } },
   });
 
   const overdue = students.filter((s) => getPaymentStatus(s.nextDueDate).status === "overdue");
@@ -23,6 +24,9 @@ export default async function Home() {
           <p className="text-sm text-gray-500">Track student payments and upcoming due dates</p>
         </div>
         <div className="flex items-center gap-3">
+          <Link href="/programs" className="text-sm text-gray-500 hover:underline">
+            Programs →
+          </Link>
           <Link href="/reports" className="text-sm text-gray-500 hover:underline">
             Monthly Revenue →
           </Link>

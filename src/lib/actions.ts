@@ -13,6 +13,7 @@ export async function createStudent(formData: FormData) {
   const firstMonthPaid = formData.get("firstMonthPaid") === "on";
   const nextDueDateRaw = String(formData.get("nextDueDate") ?? "");
   const notes = String(formData.get("notes") ?? "").trim();
+  const programIds = formData.getAll("programIds").map(String).filter(Boolean);
 
   if (!name) throw new Error("Name is required");
   if (!Number.isFinite(tuitionAmount) || tuitionAmount <= 0) {
@@ -50,10 +51,50 @@ export async function createStudent(formData: FormData) {
         data: { studentId: student.id, amount: tuitionAmount },
       });
     }
+
+    if (programIds.length > 0) {
+      await tx.enrollment.createMany({
+        data: programIds.map((programId) => ({ studentId: student.id, programId })),
+      });
+    }
   });
 
   revalidatePath("/");
   redirect("/");
+}
+
+export async function createProgram(formData: FormData) {
+  const name = String(formData.get("name") ?? "").trim();
+  const days = String(formData.get("days") ?? "").trim();
+  const time = String(formData.get("time") ?? "").trim();
+  const location = String(formData.get("location") ?? "").trim();
+  const price = Number(formData.get("price"));
+
+  if (!name) throw new Error("Name is required");
+  if (!days) throw new Error("Days is required");
+  if (!time) throw new Error("Time is required");
+  if (!location) throw new Error("Location is required");
+  if (!Number.isFinite(price) || price <= 0) {
+    throw new Error("Price must be a positive number");
+  }
+
+  await prisma.program.create({ data: { name, days, time, location, price } });
+
+  revalidatePath("/programs");
+  revalidatePath("/students/new");
+  redirect("/programs");
+}
+
+export async function setProgramActive(formData: FormData) {
+  const programId = String(formData.get("programId") ?? "");
+  const active = String(formData.get("active") ?? "") === "true";
+
+  if (!programId) throw new Error("Missing program");
+
+  await prisma.program.update({ where: { id: programId }, data: { active } });
+
+  revalidatePath("/programs");
+  revalidatePath("/students/new");
 }
 
 export async function recordPayment(formData: FormData) {
