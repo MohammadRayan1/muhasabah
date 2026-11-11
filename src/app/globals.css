@@ -29,3 +29,72 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
+
+/* ---------- Dark mode ----------
+   Toggled by `.dark` on <html> (see ThemeToggle + the inline script in layout.tsx).
+   Instead of adding dark: variants to every component, the palette the app uses is
+   remapped here, so every page — including ones added later — follows along. */
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark; /* native inputs, date picker, scrollbars */
+
+  --background: #141412;
+  --foreground: #d6d1c7;
+
+  --sidebar: #1c1d17;
+  --sidebar-foreground: #e8e6da;
+  --sidebar-muted: #8f917c;
+  --sidebar-active-bg: #3b3e30;
+  --sidebar-active-fg: #eef0e2;
+
+  /* Neutral scale, inverted: low numbers = surfaces, high numbers = text */
+  --color-stone-50: #201f1c;
+  --color-stone-100: #2a2925;
+  --color-stone-200: #34322d;
+  --color-stone-300: #46433d;
+  --color-stone-400: #77726a;
+  --color-stone-500: #9d978c;
+  --color-stone-600: #b5afa4;
+  --color-stone-700: #cfc9be;
+  --color-stone-900: #f2eee6;
+
+  /* Tinted backgrounds/borders for status badges and alerts */
+  --color-emerald-50: #10231b;
+  --color-emerald-100: #133024;
+  --color-emerald-200: #1d4636;
+  --color-red-50: #2a1615;
+  --color-red-100: #3a1b19;
+  --color-red-200: #5a2622;
+  --color-amber-50: #2a2112;
+  --color-amber-100: #3a2c14;
+  --color-amber-200: #5a4419;
+}
+
+/* Cards: bg-white is the card surface in light mode. Text-white stays white
+   (it sits on the emerald/red buttons), so this is a class override, not a
+   --color-white remap. */
+.dark .bg-white {
+  background-color: #1b1a17;
+}
+
+/* Colored text. These share a variable with button backgrounds
+   (text-emerald-700 vs hover:bg-emerald-700), so they're overridden as text
+   only, leaving the buttons' colors untouched. */
+.dark .text-emerald-700,
+.dark .text-emerald-600 {
+  color: #5fcf9f;
+}
+.dark .text-red-700,
+.dark .text-red-600 {
+  color: #f08a80;
+}
+.dark .text-amber-700,
+.dark .text-amber-600 {
+  color: #e7b45a;
+}
