@@ -62,6 +62,11 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
         <div className="rounded-2xl border border-stone-200 bg-white shadow-sm shadow-stone-900/5 p-4">
           <p className="text-lg font-semibold text-stone-900">{formatDate(student.nextDueDate)}</p>
           <p className="text-sm text-stone-500">Next due</p>
+          {student.firstPaymentAmount != null ? (
+            <p className="mt-1 text-xs text-amber-700">
+              Prorated: {formatCurrency(student.firstPaymentAmount)}
+            </p>
+          ) : null}
         </div>
         <div className="rounded-2xl border border-stone-200 bg-white shadow-sm shadow-stone-900/5 p-4">
           <p className="text-lg font-semibold text-stone-900">{formatCurrency(totalPaid)}</p>

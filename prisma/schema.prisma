@@ -13,23 +13,30 @@ datasource db {
 }
 
 model Student {
-  id            String       @id @default(cuid())
-  name          String
-  phone         String?
-  email         String?
-  tuitionAmount Float
-  priceNote     String?
-  billingDay    Int
-  nextDueDate   DateTime
-  joinedAt      DateTime     @default(now())
-  active        Boolean      @default(true)
-  notes         String?
-  payments      Payment[]
-  enrollments   Enrollment[]
-  invites       Invite[]
-  user          User?
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  id                 String       @id @default(cuid())
+  name               String
+  phone              String?
+  email              String?
+  tuitionAmount      Float
+  firstPaymentAmount Float?
+  priceNote          String?
+  billingDay         Int
+  nextDueDate        DateTime
+  joinedAt           DateTime     @default(now())
+  active             Boolean      @default(true)
+  notes              String?
+  payments           Payment[]
+  enrollments        Enrollment[]
+  invites            Invite[]
+  user               User?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+}
+
+// Singleton row (id always 1) holding class-wide billing config.
+model Settings {
+  id         Int @id @default(1)
+  billingDay Int @default(1)
 }
 
 enum Role {

@@ -1,17 +1,34 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useMemo, useState } from "react";
 import { createStudent } from "@/lib/actions";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, formatDate } from "@/lib/format";
+import { calculateProration, parseDateOnly, toDateInputValue } from "@/lib/dates";
 import { initialActionState } from "@/lib/action-state";
+import { useSubmitGuard } from "@/hooks/useSubmitGuard";
 import FormError from "@/components/FormError";
 import type { Program } from "@/generated/prisma/client";
 
-export default function NewStudentForm({ programs }: { programs: Program[] }) {
+export default function NewStudentForm({
+  programs,
+  billingDay,
+}: {
+  programs: Program[];
+  billingDay: number;
+}) {
   const [state, formAction, pending] = useActionState(createStudent, initialActionState);
+  const onSubmit = useSubmitGuard(pending);
   const [selectedProgramIds, setSelectedProgramIds] = useState<Set<string>>(new Set());
   const [tuitionAmount, setTuitionAmount] = useState("");
   const [firstMonthPaid, setFirstMonthPaid] = useState(false);
+  const [joinedAt, setJoinedAt] = useState(() => toDateInputValue(new Date()));
+
+  const monthlyAmount = parseFloat(tuitionAmount) || 0;
+  const proration = useMemo(
+    () => calculateProration(monthlyAmount, parseDateOnly(joinedAt || toDateInputValue(new Date())), billingDay),
+    [billingDay, monthlyAmount, joinedAt],
+  );
+  const { nextDueDate, isProrated } = proration;
 
   function handleProgramToggle(program: Program, checked: boolean) {
     const nextSelected = new Set(selectedProgramIds);
@@ -35,7 +52,7 @@ export default function NewStudentForm({ programs }: { programs: Program[] }) {
   const isCustomPrice = programTotal > 0 && parsedTuition !== programTotal;
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form action={formAction} onSubmit={onSubmit} className="space-y-4">
       <FormError message={state.error} />
 
       <div>
@@ -143,6 +160,68 @@ export default function NewStudentForm({ programs }: { programs: Program[] }) {
         </div>
       )}
 
+      <div>
+        <label htmlFor="joinedAt" className="block text-sm font-medium text-stone-700">
+          Date joined
+        </label>
+        <input
+          id="joinedAt"
+          name="joinedAt"
+          type="date"
+          required
+          value={joinedAt}
+          onChange={(e) => setJoinedAt(e.target.value)}
+          className="mt-1 w-full rounded-xl border border-stone-300 px-3 py-2 text-sm"
+        />
+        <p className="mt-1 text-xs text-stone-500">
+          Students are billed on day {billingDay} of each month. Pick the day they started and the
+          first bill is worked out for you.
+        </p>
+      </div>
+
+      <div className="rounded-xl border border-stone-200 bg-stone-50 p-3 text-sm text-stone-600">
+        <div className="flex items-baseline justify-between gap-3">
+          <span className="font-medium text-stone-900">First bill</span>
+          <span className="text-lg font-semibold text-stone-900">
+            {monthlyAmount > 0 ? formatCurrency(proration.amount) : "—"}
+          </span>
+        </div>
+        <p className="mt-1">
+          Due {formatDate(nextDueDate)}, then {monthlyAmount > 0 ? formatCurrency(monthlyAmount) : "the full amount"}{" "}
+          on day {billingDay} of every month after.
+        </p>
+        {monthlyAmount > 0 && isProrated ? (
+          <dl className="mt-3 space-y-1 border-t border-stone-200 pt-3 text-xs">
+            <div className="flex justify-between gap-3">
+              <dt>Billing cycle</dt>
+              <dd>
+                {formatDate(proration.cycleStart)} → {formatDate(nextDueDate)} ({proration.cycleDays} days)
+              </dd>
+            </div>
+            <div className="flex justify-between gap-3">
+              <dt>Days covered (joined → next due)</dt>
+              <dd>{proration.daysCovered} days</dd>
+            </div>
+            <div className="flex justify-between gap-3">
+              <dt>Daily rate</dt>
+              <dd>
+                {formatCurrency(monthlyAmount)} ÷ {proration.cycleDays} = {formatCurrency(proration.dailyRate)}
+              </dd>
+            </div>
+            <div className="flex justify-between gap-3 font-medium text-amber-700">
+              <dt>Prorated first bill</dt>
+              <dd>
+                {formatCurrency(proration.dailyRate)} × {proration.daysCovered} ≈ {formatCurrency(proration.amount)}
+              </dd>
+            </div>
+          </dl>
+        ) : monthlyAmount > 0 ? (
+          <p className="mt-1 text-xs text-stone-500">Joining on the billing day — no proration, full month.</p>
+        ) : (
+          <p className="mt-1 text-xs text-stone-500">Enter a tuition amount to see the first bill.</p>
+        )}
+      </div>
+
       <div className="flex items-start gap-2 rounded-xl border border-stone-200 bg-stone-50 p-3">
         <input
           id="firstMonthPaid"
@@ -153,27 +232,13 @@ export default function NewStudentForm({ programs }: { programs: Program[] }) {
           className="mt-0.5"
         />
         <label htmlFor="firstMonthPaid" className="text-sm text-stone-700">
-          First month&apos;s tuition was paid today
+          First payment was made today
           <span className="block text-xs text-stone-500">
-            Records today&apos;s payment and sets the next due date to one month from now.
+            Records {isProrated ? "the prorated amount" : "today's payment"} now and advances the
+            due date to the next cycle.
           </span>
         </label>
       </div>
-
-      {!firstMonthPaid && (
-        <div>
-          <label htmlFor="nextDueDate" className="block text-sm font-medium text-stone-700">
-            Next payment due
-          </label>
-          <input
-            id="nextDueDate"
-            name="nextDueDate"
-            type="date"
-            required
-            className="mt-1 w-full rounded-xl border border-stone-300 px-3 py-2 text-sm"
-          />
-        </div>
-      )}
 
       <div>
         <label htmlFor="notes" className="block text-sm font-medium text-stone-700">

@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, BookOpen, TrendingUp, UserPlus, LogOut } from "lucide-react";
+import { LayoutDashboard, BookOpen, TrendingUp, UserPlus, LogOut, Settings } from "lucide-react";
 import { logout } from "@/lib/auth-actions";
 
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/programs", label: "Programs", icon: BookOpen },
   { href: "/reports", label: "Monthly Revenue", icon: TrendingUp },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export default function Sidebar() {

@@ -37,6 +37,11 @@ export default function StudentRow({ student }: { student: StudentWithPrograms }
               {student.email ? ` · ${student.email}` : ""}
               {student.priceNote ? ` · ${student.priceNote}` : ""}
             </p>
+            {student.firstPaymentAmount != null ? (
+              <p className="mt-1 text-xs text-amber-700">
+                Prorated first bill: {formatCurrency(student.firstPaymentAmount)}
+              </p>
+            ) : null}
             <p className="mt-1 text-sm">
               Next due {formatDate(student.nextDueDate)} — {dueDateLabel(daysUntilDue, status)}
             </p>
@@ -57,7 +62,7 @@ export default function StudentRow({ student }: { student: StudentWithPrograms }
               name="amount"
               step="0.01"
               min="0.01"
-              defaultValue={student.tuitionAmount}
+              defaultValue={student.firstPaymentAmount ?? student.tuitionAmount}
               required
               className="min-h-11 w-24 rounded-xl border border-stone-300 bg-white px-2 py-1 text-sm text-stone-900"
             />

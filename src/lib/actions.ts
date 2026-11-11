@@ -4,8 +4,9 @@ import { randomBytes } from "crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { addMonths, parseDateOnly, startOfDay } from "@/lib/dates";
+import { calculateProration, nextOccurrenceOfDay, parseDateOnly, startOfDay } from "@/lib/dates";
 import { monthBounds } from "@/lib/reports";
+import { getBillingDay, setBillingDay } from "@/lib/settings";
 import { requireTeacher } from "@/lib/auth/dal";
 import { sendInviteEmail } from "@/lib/email";
 import type { ActionState } from "@/lib/action-state";
@@ -21,7 +22,6 @@ export async function createStudent(
   const email = String(formData.get("email") ?? "").trim();
   const tuitionAmount = Number(formData.get("tuitionAmount"));
   const firstMonthPaid = formData.get("firstMonthPaid") === "on";
-  const nextDueDateRaw = String(formData.get("nextDueDate") ?? "");
   const notes = String(formData.get("notes") ?? "").trim();
   const priceNote = String(formData.get("priceNote") ?? "").trim();
   const programIds = formData.getAll("programIds").map(String).filter(Boolean);
@@ -31,18 +31,19 @@ export async function createStudent(
     return { error: "Tuition amount must be a positive number" };
   }
 
-  let nextDueDate: Date;
-  if (firstMonthPaid) {
-    nextDueDate = addMonths(startOfDay(new Date()), 1);
-  } else {
-    if (!nextDueDateRaw) {
-      return { error: "A valid next payment due date is required" };
-    }
-    nextDueDate = parseDateOnly(nextDueDateRaw);
-    if (Number.isNaN(nextDueDate.getTime())) {
-      return { error: "A valid next payment due date is required" };
-    }
+  const joinedAtStr = String(formData.get("joinedAt") ?? "").trim();
+  if (joinedAtStr && !/^\d{4}-\d{2}-\d{2}$/.test(joinedAtStr)) {
+    return { error: "Date joined must be a valid date" };
   }
+  const joinedAt = joinedAtStr ? parseDateOnly(joinedAtStr) : startOfDay(new Date());
+  if (Number.isNaN(joinedAt.getTime())) return { error: "Date joined must be a valid date" };
+
+  const billingDay = await getBillingDay();
+  const { nextDueDate, amount: proratedAmount, isProrated } = calculateProration(
+    tuitionAmount,
+    joinedAt,
+    billingDay,
+  );
 
   await prisma.$transaction(async (tx) => {
     const student = await tx.student.create({
@@ -51,16 +52,25 @@ export async function createStudent(
         phone: phone || null,
         email: email || null,
         tuitionAmount,
+        firstPaymentAmount: isProrated ? proratedAmount : null,
         priceNote: priceNote || null,
-        billingDay: nextDueDate.getDate(),
+        billingDay,
         nextDueDate,
+        joinedAt,
         notes: notes || null,
       },
     });
 
     if (firstMonthPaid) {
       await tx.payment.create({
-        data: { studentId: student.id, amount: tuitionAmount },
+        data: { studentId: student.id, amount: isProrated ? proratedAmount : tuitionAmount },
+      });
+      await tx.student.update({
+        where: { id: student.id },
+        data: {
+          nextDueDate: nextOccurrenceOfDay(billingDay, nextDueDate),
+          firstPaymentAmount: null,
+        },
       });
     }
 
@@ -75,7 +85,10 @@ export async function createStudent(
   redirect("/");
 }
 
-export async function createProgram(formData: FormData) {
+export async function createProgram(
+  _prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
   await requireTeacher();
 
   const name = String(formData.get("name") ?? "").trim();
@@ -84,12 +97,12 @@ export async function createProgram(formData: FormData) {
   const location = String(formData.get("location") ?? "").trim();
   const price = Number(formData.get("price"));
 
-  if (!name) throw new Error("Name is required");
-  if (!days) throw new Error("Days is required");
-  if (!time) throw new Error("Time is required");
-  if (!location) throw new Error("Location is required");
+  if (!name) return { error: "Name is required" };
+  if (!days) return { error: "Days is required" };
+  if (!time) return { error: "Time is required" };
+  if (!location) return { error: "Location is required" };
   if (!Number.isFinite(price) || price <= 0) {
-    throw new Error("Price must be a positive number");
+    return { error: "Price must be a positive number" };
   }
 
   await prisma.program.create({ data: { name, days, time, location, price } });
@@ -125,15 +138,33 @@ export async function recordPayment(formData: FormData) {
   }
 
   const student = await prisma.student.findUniqueOrThrow({ where: { id: studentId } });
+  const billingDay = await getBillingDay();
 
   await prisma.$transaction([
     prisma.payment.create({ data: { studentId, amount } }),
     prisma.student.update({
       where: { id: studentId },
-      data: { nextDueDate: addMonths(student.nextDueDate, 1) },
+      data: {
+        nextDueDate: nextOccurrenceOfDay(billingDay, student.nextDueDate),
+        firstPaymentAmount: null,
+      },
     }),
   ]);
 
+  revalidatePath("/");
+}
+
+export async function updateBillingDay(formData: FormData) {
+  await requireTeacher();
+
+  const billingDay = Number(formData.get("billingDay"));
+  if (!Number.isInteger(billingDay) || billingDay < 1 || billingDay > 31) {
+    throw new Error("Billing day must be a whole number between 1 and 31");
+  }
+
+  await setBillingDay(billingDay);
+
+  revalidatePath("/settings");
   revalidatePath("/");
 }
 
