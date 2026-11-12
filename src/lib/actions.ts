@@ -4,9 +4,14 @@ import { randomBytes } from "crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { calculateProration, nextOccurrenceOfDay, parseDateOnly, startOfDay } from "@/lib/dates";
+import {
+  BILLING_DAY,
+  calculateFirstBill,
+  nextBillingDate,
+  parseDateOnly,
+  startOfDay,
+} from "@/lib/dates";
 import { monthBounds } from "@/lib/reports";
-import { getBillingDay, setBillingDay } from "@/lib/settings";
 import { requireTeacher } from "@/lib/auth/dal";
 import { sendInviteEmail } from "@/lib/email";
 import type { ActionState } from "@/lib/action-state";
@@ -38,12 +43,7 @@ export async function createStudent(
   const joinedAt = joinedAtStr ? parseDateOnly(joinedAtStr) : startOfDay(new Date());
   if (Number.isNaN(joinedAt.getTime())) return { error: "Date joined must be a valid date" };
 
-  const billingDay = await getBillingDay();
-  const { nextDueDate, amount: proratedAmount, isProrated } = calculateProration(
-    tuitionAmount,
-    joinedAt,
-    billingDay,
-  );
+  const firstBill = calculateFirstBill(tuitionAmount, joinedAt);
 
   await prisma.$transaction(async (tx) => {
     const student = await tx.student.create({
@@ -52,10 +52,11 @@ export async function createStudent(
         phone: phone || null,
         email: email || null,
         tuitionAmount,
-        firstPaymentAmount: isProrated ? proratedAmount : null,
+        // Set only when the first bill differs from a normal month (leftover days added on).
+        firstPaymentAmount: firstBill.hasLeftover ? firstBill.total : null,
         priceNote: priceNote || null,
-        billingDay,
-        nextDueDate,
+        billingDay: BILLING_DAY,
+        nextDueDate: firstBill.dueDate,
         joinedAt,
         notes: notes || null,
       },
@@ -63,12 +64,12 @@ export async function createStudent(
 
     if (firstMonthPaid) {
       await tx.payment.create({
-        data: { studentId: student.id, amount: isProrated ? proratedAmount : tuitionAmount },
+        data: { studentId: student.id, amount: firstBill.total },
       });
       await tx.student.update({
         where: { id: student.id },
         data: {
-          nextDueDate: nextOccurrenceOfDay(billingDay, nextDueDate),
+          nextDueDate: nextBillingDate(firstBill.dueDate),
           firstPaymentAmount: null,
         },
       });
@@ -138,33 +139,18 @@ export async function recordPayment(formData: FormData) {
   }
 
   const student = await prisma.student.findUniqueOrThrow({ where: { id: studentId } });
-  const billingDay = await getBillingDay();
 
   await prisma.$transaction([
     prisma.payment.create({ data: { studentId, amount } }),
     prisma.student.update({
       where: { id: studentId },
       data: {
-        nextDueDate: nextOccurrenceOfDay(billingDay, student.nextDueDate),
+        nextDueDate: nextBillingDate(student.nextDueDate),
         firstPaymentAmount: null,
       },
     }),
   ]);
 
-  revalidatePath("/");
-}
-
-export async function updateBillingDay(formData: FormData) {
-  await requireTeacher();
-
-  const billingDay = Number(formData.get("billingDay"));
-  if (!Number.isInteger(billingDay) || billingDay < 1 || billingDay > 31) {
-    throw new Error("Billing day must be a whole number between 1 and 31");
-  }
-
-  await setBillingDay(billingDay);
-
-  revalidatePath("/settings");
   revalidatePath("/");
 }
 

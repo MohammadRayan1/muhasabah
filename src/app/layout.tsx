@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Nunito } from "next/font/google";
+import { Amiri, Nunito } from "next/font/google";
 import ThemeToggle from "@/components/ThemeToggle";
 import { THEME_STORAGE_KEY } from "@/lib/theme";
 import "./globals.css";
@@ -7,6 +7,13 @@ import "./globals.css";
 const nunito = Nunito({
   variable: "--font-nunito",
   subsets: ["latin"],
+});
+
+// Classical naskh for the Arabic wordmark (محاسبة) and the Bismillah.
+const amiri = Amiri({
+  variable: "--font-amiri",
+  subsets: ["arabic"],
+  weight: ["400", "700"],
 });
 
 export const metadata: Metadata = {
@@ -26,7 +33,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${nunito.variable} h-full antialiased`} suppressHydrationWarning>
+    <html lang="en" className={`${nunito.variable} ${amiri.variable} h-full antialiased`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>

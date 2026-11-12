@@ -3,19 +3,17 @@
 import { useActionState, useMemo, useState } from "react";
 import { createStudent } from "@/lib/actions";
 import { formatCurrency, formatDate } from "@/lib/format";
-import { calculateProration, parseDateOnly, toDateInputValue } from "@/lib/dates";
+import { calculateFirstBill, parseDateOnly, toDateInputValue } from "@/lib/dates";
 import { initialActionState } from "@/lib/action-state";
 import { useSubmitGuard } from "@/hooks/useSubmitGuard";
 import FormError from "@/components/FormError";
+import JoinDateCalendar from "@/components/JoinDateCalendar";
 import type { Program } from "@/generated/prisma/client";
 
-export default function NewStudentForm({
-  programs,
-  billingDay,
-}: {
-  programs: Program[];
-  billingDay: number;
-}) {
+const shortDate = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" });
+const monthName = new Intl.DateTimeFormat("en-US", { month: "long" });
+
+export default function NewStudentForm({ programs }: { programs: Program[] }) {
   const [state, formAction, pending] = useActionState(createStudent, initialActionState);
   const onSubmit = useSubmitGuard(pending);
   const [selectedProgramIds, setSelectedProgramIds] = useState<Set<string>>(new Set());
@@ -24,11 +22,11 @@ export default function NewStudentForm({
   const [joinedAt, setJoinedAt] = useState(() => toDateInputValue(new Date()));
 
   const monthlyAmount = parseFloat(tuitionAmount) || 0;
-  const proration = useMemo(
-    () => calculateProration(monthlyAmount, parseDateOnly(joinedAt || toDateInputValue(new Date())), billingDay),
-    [billingDay, monthlyAmount, joinedAt],
+  const bill = useMemo(
+    () => calculateFirstBill(monthlyAmount, parseDateOnly(joinedAt)),
+    [monthlyAmount, joinedAt],
   );
-  const { nextDueDate, isProrated } = proration;
+  const monthEnd = new Date(bill.joinDate.getFullYear(), bill.joinDate.getMonth() + 1, 0);
 
   function handleProgramToggle(program: Program, checked: boolean) {
     const nextSelected = new Set(selectedProgramIds);
@@ -161,64 +159,59 @@ export default function NewStudentForm({
       )}
 
       <div>
-        <label htmlFor="joinedAt" className="block text-sm font-medium text-stone-700">
-          Date joined
-        </label>
-        <input
-          id="joinedAt"
-          name="joinedAt"
-          type="date"
-          required
-          value={joinedAt}
-          onChange={(e) => setJoinedAt(e.target.value)}
-          className="mt-1 w-full rounded-xl border border-stone-300 px-3 py-2 text-sm"
-        />
-        <p className="mt-1 text-xs text-stone-500">
-          Students are billed on day {billingDay} of each month. Pick the day they started and the
-          first bill is worked out for you.
+        <span id="joinedAt-label" className="block text-sm font-medium text-stone-700">
+          Day they joined
+        </span>
+        <p className="mb-2 text-xs text-stone-500">
+          Everyone pays on the 1st. If they start mid-month, the rest of that month is added to
+          their first bill.
         </p>
+        <JoinDateCalendar name="joinedAt" value={joinedAt} onChange={setJoinedAt} />
       </div>
 
-      <div className="rounded-xl border border-stone-200 bg-stone-50 p-3 text-sm text-stone-600">
+      <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4 text-sm text-stone-600">
         <div className="flex items-baseline justify-between gap-3">
-          <span className="font-medium text-stone-900">First bill</span>
-          <span className="text-lg font-semibold text-stone-900">
-            {monthlyAmount > 0 ? formatCurrency(proration.amount) : "—"}
+          <span className="font-semibold text-stone-900">
+            First bill · due {formatDate(bill.dueDate)}
+          </span>
+          <span className="text-xl font-bold tabular-nums text-stone-900">
+            {monthlyAmount > 0 ? formatCurrency(bill.total) : "—"}
           </span>
         </div>
-        <p className="mt-1">
-          Due {formatDate(nextDueDate)}, then {monthlyAmount > 0 ? formatCurrency(monthlyAmount) : "the full amount"}{" "}
-          on day {billingDay} of every month after.
-        </p>
-        {monthlyAmount > 0 && isProrated ? (
-          <dl className="mt-3 space-y-1 border-t border-stone-200 pt-3 text-xs">
-            <div className="flex justify-between gap-3">
-              <dt>Billing cycle</dt>
-              <dd>
-                {formatDate(proration.cycleStart)} → {formatDate(nextDueDate)} ({proration.cycleDays} days)
-              </dd>
-            </div>
-            <div className="flex justify-between gap-3">
-              <dt>Days covered (joined → next due)</dt>
-              <dd>{proration.daysCovered} days</dd>
-            </div>
-            <div className="flex justify-between gap-3">
-              <dt>Daily rate</dt>
-              <dd>
-                {formatCurrency(monthlyAmount)} ÷ {proration.cycleDays} = {formatCurrency(proration.dailyRate)}
-              </dd>
-            </div>
-            <div className="flex justify-between gap-3 font-medium text-amber-700">
-              <dt>Prorated first bill</dt>
-              <dd>
-                {formatCurrency(proration.dailyRate)} × {proration.daysCovered} ≈ {formatCurrency(proration.amount)}
-              </dd>
-            </div>
-          </dl>
-        ) : monthlyAmount > 0 ? (
-          <p className="mt-1 text-xs text-stone-500">Joining on the billing day — no proration, full month.</p>
-        ) : (
+
+        {monthlyAmount <= 0 ? (
           <p className="mt-1 text-xs text-stone-500">Enter a tuition amount to see the first bill.</p>
+        ) : bill.hasLeftover ? (
+          <>
+            <dl className="mt-3 space-y-1.5 border-t border-stone-200 pt-3 text-[13px]">
+              <div className="flex justify-between gap-3">
+                <dt>
+                  Rest of {monthName.format(bill.joinDate)}{" "}
+                  <span className="text-stone-500">
+                    ({shortDate.format(bill.joinDate)} – {shortDate.format(monthEnd)}, {bill.leftoverDays} of{" "}
+                    {bill.monthDays} days × {formatCurrency(bill.dailyRate)})
+                  </span>
+                </dt>
+                <dd className="tabular-nums">{formatCurrency(bill.leftoverAmount)}</dd>
+              </div>
+              <div className="flex justify-between gap-3">
+                <dt>{monthName.format(bill.dueDate)} tuition</dt>
+                <dd className="tabular-nums">{formatCurrency(monthlyAmount)}</dd>
+              </div>
+              <div className="flex justify-between gap-3 border-t border-stone-200 pt-1.5 font-semibold text-stone-900">
+                <dt>Due {formatDate(bill.dueDate)}</dt>
+                <dd className="tabular-nums">{formatCurrency(bill.total)}</dd>
+              </div>
+            </dl>
+            <p className="mt-3 text-xs text-stone-500">
+              Then {formatCurrency(monthlyAmount)} on the 1st of every month.
+            </p>
+          </>
+        ) : (
+          <p className="mt-1 text-xs text-stone-500">
+            Joining on the 1st, so it&apos;s a regular month. Then {formatCurrency(monthlyAmount)} on the
+            1st of every month.
+          </p>
         )}
       </div>
 
@@ -234,8 +227,8 @@ export default function NewStudentForm({
         <label htmlFor="firstMonthPaid" className="text-sm text-stone-700">
           First payment was made today
           <span className="block text-xs text-stone-500">
-            Records {isProrated ? "the prorated amount" : "today's payment"} now and advances the
-            due date to the next cycle.
+            Records the first bill ({monthlyAmount > 0 ? formatCurrency(bill.total) : "—"}) as paid
+            and moves their next due date to the following 1st.
           </span>
         </label>
       </div>

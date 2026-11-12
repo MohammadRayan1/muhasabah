@@ -1,87 +1,91 @@
 import Link from "next/link";
-import { getPaymentStatus, STATUS_BADGE_STYLES, STATUS_LABEL } from "@/lib/status";
+import { getPaymentStatus, type PaymentStatus } from "@/lib/status";
 import { recordPayment, setStudentActive } from "@/lib/actions";
 import { formatCurrency, formatDate } from "@/lib/format";
 import Avatar from "@/components/Avatar";
 import type { Student, Program } from "@/generated/prisma/client";
 
-function dueDateLabel(daysUntilDue: number, status: keyof typeof STATUS_LABEL) {
+const DUE_TEXT: Record<PaymentStatus, string> = {
+  overdue: "text-red-700",
+  due_soon: "text-amber-700",
+  ok: "text-stone-600",
+};
+
+function dueDateLabel(daysUntilDue: number, status: PaymentStatus) {
   if (status === "overdue") {
     const days = Math.abs(daysUntilDue);
     return `${days} day${days === 1 ? "" : "s"} overdue`;
   }
   if (daysUntilDue === 0) return "Due today";
-  return `Due in ${daysUntilDue} day${daysUntilDue === 1 ? "" : "s"}`;
+  if (daysUntilDue === 1) return "Due tomorrow";
+  return `Due in ${daysUntilDue} days`;
 }
 
 type StudentWithPrograms = Student & { enrollments: { program: Program }[] };
 
 export default function StudentRow({ student }: { student: StudentWithPrograms }) {
   const { status, daysUntilDue } = getPaymentStatus(student.nextDueDate);
+  const programs = student.enrollments.map((e) => e.program.name).join(", ");
+  const amountDue = student.firstPaymentAmount ?? student.tuitionAmount;
 
   return (
-    <div className={`rounded-2xl border p-4 shadow-sm shadow-stone-900/5 ${STATUS_BADGE_STYLES[status]}`}>
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <Link href={`/students/${student.id}`} className="flex min-w-0 flex-1 gap-3 hover:opacity-80">
-          <Avatar name={student.name} />
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h3 className="font-medium text-stone-900">{student.name}</h3>
-              <span className="rounded-full border px-2 py-0.5 text-xs font-medium">
-                {STATUS_LABEL[status]}
-              </span>
-            </div>
-            <p className="mt-1 text-sm text-stone-600">
-              {formatCurrency(student.tuitionAmount)} / month
-              {student.phone ? ` · ${student.phone}` : ""}
-              {student.email ? ` · ${student.email}` : ""}
-              {student.priceNote ? ` · ${student.priceNote}` : ""}
-            </p>
-            {student.firstPaymentAmount != null ? (
-              <p className="mt-1 text-xs text-amber-700">
-                Prorated first bill: {formatCurrency(student.firstPaymentAmount)}
-              </p>
-            ) : null}
-            <p className="mt-1 text-sm">
-              Next due {formatDate(student.nextDueDate)} — {dueDateLabel(daysUntilDue, status)}
-            </p>
-            {student.enrollments.length > 0 ? (
-              <p className="mt-1 text-xs text-stone-500">
-                {student.enrollments.map((e) => e.program.name).join(", ")}
-              </p>
-            ) : null}
-            {student.notes ? <p className="mt-1 text-sm text-stone-500">{student.notes}</p> : null}
-          </div>
-        </Link>
+    <li className="flex flex-wrap items-center gap-x-5 gap-y-3 px-4 py-4 sm:px-5">
+      <Link href={`/students/${student.id}`} className="group flex min-w-0 flex-1 basis-56 items-center gap-3">
+        <Avatar name={student.name} />
+        <div className="min-w-0">
+          <p className="truncate font-semibold text-stone-900 underline-offset-4 group-hover:underline">
+            {student.name}
+          </p>
+          <p className="truncate text-sm text-stone-500">
+            {programs || "No programs"} · {formatCurrency(student.tuitionAmount)}/mo
+          </p>
+        </div>
+      </Link>
 
-        <div className="flex flex-col items-end gap-2">
-          <form action={recordPayment} className="flex items-center gap-2">
-            <input type="hidden" name="studentId" value={student.id} />
+      <div className="w-36 shrink-0">
+        <p className={`text-sm font-semibold ${DUE_TEXT[status]}`}>{dueDateLabel(daysUntilDue, status)}</p>
+        <p className="text-xs text-stone-500">
+          {formatDate(student.nextDueDate)}
+          {student.firstPaymentAmount != null ? " · first bill" : ""}
+        </p>
+      </div>
+
+      <div className="flex items-center gap-3">
+        <form action={recordPayment} className="flex items-center gap-2">
+          <input type="hidden" name="studentId" value={student.id} />
+          <label className="relative">
+            <span className="sr-only">Amount paid by {student.name}</span>
+            <span aria-hidden className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm text-stone-500">
+              $
+            </span>
             <input
               type="number"
               name="amount"
               step="0.01"
               min="0.01"
-              defaultValue={student.firstPaymentAmount ?? student.tuitionAmount}
+              defaultValue={amountDue}
               required
-              className="min-h-11 w-24 rounded-xl border border-stone-300 bg-white px-2 py-1 text-sm text-stone-900"
+              className="h-10 w-24 rounded-xl border border-stone-300 bg-white pr-2 pl-6 text-sm text-stone-900 tabular-nums outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/15"
             />
-            <button
-              type="submit"
-              className="min-h-11 rounded-xl bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-emerald-700"
-            >
-              Mark paid
-            </button>
-          </form>
-          <form action={setStudentActive}>
-            <input type="hidden" name="studentId" value={student.id} />
-            <input type="hidden" name="active" value="false" />
-            <button type="submit" className="text-xs text-stone-400 hover:text-stone-600 hover:underline">
-              Remove student
-            </button>
-          </form>
-        </div>
+          </label>
+          <button
+            type="submit"
+            className="h-10 rounded-xl bg-emerald-600 px-3.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
+          >
+            Mark paid
+          </button>
+        </form>
+        <form action={setStudentActive}>
+          <input type="hidden" name="studentId" value={student.id} />
+          <input type="hidden" name="active" value="false" />
+          <button
+            type="submit"
+            className="text-xs text-stone-500 underline-offset-4 transition-colors hover:text-red-700 hover:underline"
+          >
+            Remove
+          </button>
+        </form>
       </div>
-    </div>
+    </li>
   );
 }

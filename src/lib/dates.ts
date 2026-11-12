@@ -54,35 +54,67 @@ export function toDateInputValue(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
-export type Proration = {
-  /** Billing-day occurrence on or before the join date — start of the cycle they join in. */
-  cycleStart: Date;
-  /** First due date after joining (the next billing day). */
-  nextDueDate: Date;
-  /** Length of the billing cycle the student joins in, in days. */
-  cycleDays: number;
-  /** Days from the join date up to (not including) the next due date. */
-  daysCovered: number;
+/** Everyone is billed on the 1st of the month. */
+export const BILLING_DAY = 1;
+
+/** The next 1st-of-month strictly after `from`. */
+export function nextBillingDate(from: Date): Date {
+  return nextOccurrenceOfDay(BILLING_DAY, from);
+}
+
+export type FirstBill = {
+  joinDate: Date;
+  /** When the first bill is due: the join date itself if they join on the 1st, else the next 1st. */
+  dueDate: Date;
+  /** Days in the month they join in. */
+  monthDays: number;
+  /** Days from the join date to the end of that month, inclusive. 0 when joining on the 1st. */
+  leftoverDays: number;
   dailyRate: number;
-  /** First bill, rounded to the nearest dollar. Equals monthlyAmount when not prorated. */
-  amount: number;
-  isProrated: boolean;
+  /** Charge for the leftover days, rounded to the nearest dollar. 0 when joining on the 1st. */
+  leftoverAmount: number;
+  /** The first bill: leftover days + one regular month. */
+  total: number;
+  hasLeftover: boolean;
 };
 
 /**
- * Prorated first bill for a student joining on `joinDate`, billed on `billingDay`.
- * The daily rate is the monthly amount divided by the length of the actual billing
- * cycle the student joins in (e.g. Nov 15 → Dec 15), so it's correct even when the
- * billing day isn't the 1st and the cycle spans two calendar months.
+ * First bill for a student joining on `joinDate`, with everyone billed on the 1st.
+ *
+ * Joining on the 1st: a normal month, due that day.
+ * Joining mid-month (e.g. Nov 11 at $100/mo): the remaining days of November are
+ * prorated by day (20 of 30 days = $67) and added onto the Dec 1 bill along with
+ * December's regular tuition, so the Dec 1 bill is $167.
  */
-export function calculateProration(monthlyAmount: number, joinDate: Date, billingDay: number): Proration {
+export function calculateFirstBill(monthlyAmount: number, joinDate: Date): FirstBill {
   const start = startOfDay(joinDate);
-  const nextDueDate = nextOccurrenceOfDay(billingDay, start);
-  const cycleStart = dateInMonth(nextDueDate.getFullYear(), nextDueDate.getMonth() - 1, billingDay);
-  const cycleDays = diffInDays(nextDueDate, cycleStart);
-  const daysCovered = diffInDays(nextDueDate, start);
-  const dailyRate = monthlyAmount / cycleDays;
-  const isProrated = daysCovered < cycleDays;
-  const amount = isProrated ? Math.round(dailyRate * daysCovered) : monthlyAmount;
-  return { cycleStart, nextDueDate, cycleDays, daysCovered, dailyRate, amount, isProrated };
+  const monthDays = daysInMonth(start.getFullYear(), start.getMonth());
+  const dailyRate = monthlyAmount / monthDays;
+
+  if (start.getDate() === BILLING_DAY) {
+    return {
+      joinDate: start,
+      dueDate: start,
+      monthDays,
+      leftoverDays: 0,
+      dailyRate,
+      leftoverAmount: 0,
+      total: monthlyAmount,
+      hasLeftover: false,
+    };
+  }
+
+  const dueDate = nextBillingDate(start);
+  const leftoverDays = diffInDays(dueDate, start);
+  const leftoverAmount = Math.round(dailyRate * leftoverDays);
+  return {
+    joinDate: start,
+    dueDate,
+    monthDays,
+    leftoverDays,
+    dailyRate,
+    leftoverAmount,
+    total: leftoverAmount + monthlyAmount,
+    hasLeftover: true,
+  };
 }

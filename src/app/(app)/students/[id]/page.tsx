@@ -64,7 +64,7 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
           <p className="text-sm text-stone-500">Next due</p>
           {student.firstPaymentAmount != null ? (
             <p className="mt-1 text-xs text-amber-700">
-              Prorated: {formatCurrency(student.firstPaymentAmount)}
+              First bill: {formatCurrency(student.firstPaymentAmount)} (includes leftover days)
             </p>
           ) : null}
         </div>

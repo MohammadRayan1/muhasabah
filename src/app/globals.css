@@ -10,6 +10,10 @@
   --sidebar-active-bg: #c9cdb2;
   --sidebar-active-fg: #2b2d22;
   --accent-circle: #6b6f58;
+
+  /* Warm date-gold, used only on the deep olive panels (login, month ledger). */
+  --gold: #e2b45a;
+  --ledger: #34362b;
 }
 
 @theme inline {
@@ -21,7 +25,49 @@
   --color-sidebar-active-bg: var(--sidebar-active-bg);
   --color-sidebar-active-fg: var(--sidebar-active-fg);
   --color-accent-circle: var(--accent-circle);
+  --color-gold: var(--gold);
+  --color-ledger: var(--ledger);
   --font-sans: var(--font-nunito);
+  --font-arabic: var(--font-amiri);
+}
+
+/* Primary green, one step deeper than Tailwind's default so white button text
+   clears WCAG AA (Tailwind's emerald-600 with white is only 3.7:1). */
+:root {
+  --color-emerald-600: #047857;
+  --color-emerald-700: #065f46;
+}
+
+/* Browser surfaces, themed from the palette rather than left at defaults. */
+:root {
+  accent-color: #047857;
+  caret-color: #047857;
+}
+::selection {
+  background: rgb(4 120 87 / 0.22);
+}
+:focus-visible {
+  outline: 2px solid #047857;
+  outline-offset: 2px;
+}
+p {
+  text-wrap: pretty;
+}
+
+/* The one motion moment: the month ledger's collected bar settles in. */
+@keyframes ledger-fill {
+  from {
+    transform: scaleX(0);
+  }
+}
+.ledger-fill {
+  transform-origin: left;
+  animation: ledger-fill 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ledger-fill {
+    animation: none;
+  }
 }
 
 body {
@@ -49,16 +95,19 @@ body {
 
   --sidebar: #1c1d17;
   --sidebar-foreground: #e8e6da;
-  --sidebar-muted: #8f917c;
+  --sidebar-muted: #9a9c86;
   --sidebar-active-bg: #3b3e30;
   --sidebar-active-fg: #eef0e2;
+
+  /* Lifted olive so the ledger panel still reads as a panel on the dark ground */
+  --ledger: #2b2d23;
 
   /* Neutral scale, inverted: low numbers = surfaces, high numbers = text */
   --color-stone-50: #201f1c;
   --color-stone-100: #2a2925;
   --color-stone-200: #34322d;
   --color-stone-300: #46433d;
-  --color-stone-400: #77726a;
+  --color-stone-400: #8a857c;
   --color-stone-500: #9d978c;
   --color-stone-600: #b5afa4;
   --color-stone-700: #cfc9be;
