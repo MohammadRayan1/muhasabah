@@ -29,7 +29,7 @@ Built for one teacher running Islamic classes, not a school-management suite: on
 
 ## Capabilities and Constraints
 
-- Next.js app with a Postgres (Neon) database, deployed on Netlify.
+- React Router app with a Postgres (Neon) database, deployed on Netlify.
 - Two roles: TEACHER (full access) and MEMBER (student portal, read-only).
 - Light and dark themes; a theme toggle is available on every page, including before sign-in.
 - Currency is USD.

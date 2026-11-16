@@ -5,10 +5,18 @@ export default [
   route("logout", "routes/logout.ts"),
   route("invite/:token", "routes/invite.tsx"),
   route("portal", "routes/portal.tsx"),
+  route("receipts/:paymentId", "routes/receipt.tsx"),
+
+  // Machine endpoints (no pages)
+  route("api/stripe-webhook", "routes/api.stripe-webhook.ts"),
+  route("api/cron/reminders", "routes/api.cron-reminders.ts"),
 
   layout("routes/app-layout.tsx", [
     index("routes/dashboard.tsx"),
+    route("families", "routes/families.tsx"),
+    route("families/:id", "routes/family.tsx"),
     route("programs", "routes/programs.tsx"),
+    route("reminders", "routes/reminders.tsx"),
     route("reports", "routes/reports.tsx"),
     route("reports/:month", "routes/report-month.tsx"),
     route("students/new", "routes/student-new.tsx"),

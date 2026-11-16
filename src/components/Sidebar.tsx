@@ -1,5 +1,7 @@
 import { Form, Link, useLocation } from "react-router";
 import {
+  BellRing,
+  Users,
   LayoutDashboard,
   BookOpen,
   TrendingUp,
@@ -14,7 +16,9 @@ const NAV_ITEMS: {
   icon: typeof LayoutDashboard;
 }[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/families", label: "Families", icon: Users },
   { href: "/programs", label: "Programs", icon: BookOpen },
+  { href: "/reminders", label: "Reminders", icon: BellRing },
   {
     href: "/reports",
     label: "Monthly Revenue",

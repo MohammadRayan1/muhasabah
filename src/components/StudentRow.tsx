@@ -2,6 +2,7 @@ import { Link, useFetcher } from "react-router";
 import { getPaymentStatus, type PaymentStatus } from "@/lib/status";
 import { formatCurrency, formatDate } from "@/lib/format";
 import Avatar from "@/components/Avatar";
+import RemindMenu from "@/components/RemindMenu";
 import type { Student, Program } from "@/generated/prisma/client";
 
 const DUE_TEXT: Record<PaymentStatus, string> = {
@@ -20,9 +21,12 @@ function dueDateLabel(daysUntilDue: number, status: PaymentStatus) {
   return `Due in ${daysUntilDue} days`;
 }
 
-type StudentWithPrograms = Student & { enrollments: { program: Program }[] };
+type StudentWithPrograms = Student & {
+  enrollments: { program: Program }[];
+  family?: { phone: string | null; email: string | null; guardianName: string | null } | null;
+};
 
-export default function StudentRow({ student }: { student: StudentWithPrograms }) {
+export default function StudentRow({ student, canEmail = false }: { student: StudentWithPrograms; canEmail?: boolean }) {
   const { status, daysUntilDue } = getPaymentStatus(student.nextDueDate);
   const programs = student.enrollments.map((e) => e.program.name).join(", ");
   const amountDue = student.firstPaymentAmount ?? student.tuitionAmount;
@@ -79,6 +83,7 @@ export default function StudentRow({ student }: { student: StudentWithPrograms }
             {paying ? "Saving…" : "Mark paid"}
           </button>
         </payFetcher.Form>
+        {status !== "ok" ? <RemindMenu student={student} canEmail={canEmail} /> : null}
         <removeFetcher.Form method="post" action="/?index">
           <input type="hidden" name="intent" value="removeStudent" />
           <input type="hidden" name="studentId" value={student.id} />

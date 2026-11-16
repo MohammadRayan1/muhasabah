@@ -1,36 +1,44 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Muhasabah · محاسبة
 
-## Getting Started
+A tuition tracker for one teacher running Islamic classes. It tracks who is enrolled, who
+has paid, and what is due on the 1st of each month. Parents get a read-only portal.
 
-First, run the development server:
+**Live:** https://muhsabah.netlify.app
+
+## What it does
+
+- **Billing on the 1st.** Students who join mid-month get the rest of that month added to their first bill.
+- **Families.** Siblings share one parent contact and one portal view, and can be marked paid together.
+- **Reminders.** One tap opens WhatsApp, a text or an email with the message already written. There are also optional automatic emails a few days before and after the 1st.
+- **Receipts.** Every payment gets a numbered receipt (MUH-00001) that can be printed, saved as a PDF, or emailed.
+- **Quran progress.** Log sabaq, sabqi, manzil and nazra by surah and ayah, with how it went. Parents see it in the portal.
+- **Online payments (optional).** Parents can pay by card through Stripe, and the payment is recorded on its own.
+- **Revenue.** Expected and collected totals per month.
+
+## Stack
+
+React Router 7 (framework mode) on Vite, Prisma 7 with Postgres (Neon), and Tailwind CSS 4.
+It's deployed on Netlify with `@netlify/vite-plugin-react-router`, plus a scheduled
+Netlify Function for the daily reminder run.
+
+## Running it locally
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env    # fill in DATABASE_URL, SESSION_SECRET, APP_URL
+npm install
+npx prisma migrate deploy
+npx tsx scripts/create-teacher.ts   # make your teacher login
+npm run dev                          # http://localhost:5173
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`scripts/reset-password.ts` resets a forgotten password.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Optional setup
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+**Email.** Add `RESEND_API_KEY`. Resend's test sender only delivers to your own Resend
+address. To reach parents, verify a domain in Resend and set `EMAIL_FROM`. Then turn on
+automatic reminders on the Reminders page.
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**Stripe.** Add `STRIPE_SECRET_KEY`. In the Stripe dashboard, create a webhook to
+`https://<your-site>/api/stripe-webhook` for the `checkout.session.completed` event, and add its
+signing secret as `STRIPE_WEBHOOK_SECRET`. The **Pay online** button then appears in the portal.

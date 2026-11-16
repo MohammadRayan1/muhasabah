@@ -11,7 +11,13 @@ import type { Program } from "@/generated/prisma/client";
 const shortDate = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" });
 const monthName = new Intl.DateTimeFormat("en-US", { month: "long" });
 
-export default function NewStudentForm({ programs }: { programs: Program[] }) {
+export default function NewStudentForm({
+  programs,
+  families,
+}: {
+  programs: Program[];
+  families: { id: string; name: string }[];
+}) {
   const actionData = useActionData<ActionState>();
   const pending = useNavigation().state !== "idle";
   const onSubmit = useSubmitGuard(pending);
@@ -19,6 +25,7 @@ export default function NewStudentForm({ programs }: { programs: Program[] }) {
   const [tuitionAmount, setTuitionAmount] = useState("");
   const [firstMonthPaid, setFirstMonthPaid] = useState(false);
   const [joinedAt, setJoinedAt] = useState(() => toDateInputValue(new Date()));
+  const [familyChoice, setFamilyChoice] = useState("");
 
   const monthlyAmount = parseFloat(tuitionAmount) || 0;
   const bill = useMemo(
@@ -88,6 +95,56 @@ export default function NewStudentForm({ programs }: { programs: Program[] }) {
             className="mt-1 w-full rounded-xl border border-stone-300 px-3 py-2 text-sm"
           />
         </div>
+      </div>
+
+      <div>
+        <label htmlFor="familyId" className="block text-sm font-medium text-stone-700">
+          Family
+        </label>
+        <select
+          id="familyId"
+          name="familyId"
+          value={familyChoice}
+          onChange={(e) => setFamilyChoice(e.target.value)}
+          className="mt-1 h-11 w-full rounded-xl border border-stone-300 bg-white px-3 text-sm"
+        >
+          <option value="">No family (or add later)</option>
+          <option value="new">New family…</option>
+          {families.map((f) => (
+            <option key={f.id} value={f.id}>
+              {f.name}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1 text-xs text-stone-500">Siblings in one family share a parent contact and portal.</p>
+        {familyChoice === "new" ? (
+          <div className="mt-3 grid grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="newFamilyName" className="block text-sm font-medium text-stone-700">
+                Family name
+              </label>
+              <input
+                id="newFamilyName"
+                name="newFamilyName"
+                required
+                placeholder="Khan family"
+                className="mt-1 w-full rounded-xl border border-stone-300 px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label htmlFor="guardianName" className="block text-sm font-medium text-stone-700">
+                Parent or guardian
+              </label>
+              <input
+                id="guardianName"
+                name="guardianName"
+                placeholder="Sister Fatima"
+                className="mt-1 w-full rounded-xl border border-stone-300 px-3 py-2 text-sm"
+              />
+            </div>
+            <p className="col-span-2 text-xs text-stone-500">The phone and email above are saved as the family&apos;s contact.</p>
+          </div>
+        ) : null}
       </div>
 
       {programs.length > 0 ? (

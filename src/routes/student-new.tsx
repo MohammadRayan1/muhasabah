@@ -8,11 +8,11 @@ export const meta: Route.MetaFunction = () => [{ title: "Add Student · Muhasaba
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireTeacher(request);
-  const programs = await prisma.program.findMany({
-    where: { active: true },
-    orderBy: { createdAt: "asc" },
-  });
-  return { programs };
+  const [programs, families] = await Promise.all([
+    prisma.program.findMany({ where: { active: true }, orderBy: { createdAt: "asc" } }),
+    prisma.family.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+  ]);
+  return { programs, families };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -21,13 +21,13 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 export default function NewStudentPage({ loaderData }: Route.ComponentProps) {
-  const { programs } = loaderData;
+  const { programs, families } = loaderData;
 
   return (
     <div className="mx-auto max-w-lg">
       <h1 className="mb-6 text-2xl font-bold text-stone-900">Add Student</h1>
 
-      <NewStudentForm programs={programs} />
+      <NewStudentForm programs={programs} families={families} />
     </div>
   );
 }

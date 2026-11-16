@@ -9,7 +9,12 @@ import {
   startOfDay,
 } from "@/lib/dates";
 import { monthBounds } from "@/lib/reports.server";
-import { sendInviteEmail } from "@/lib/email.server";
+import { sendInviteEmail, sendReceiptEmail } from "@/lib/email.server";
+import { amountDue } from "@/lib/status";
+import { receiptCode } from "@/lib/reminders";
+import { formatCurrency, formatDate } from "@/lib/format";
+import { SURAHS } from "@/lib/quran";
+import type { ProgressKind } from "@/generated/prisma/client";
 import type { ActionState } from "@/lib/action-state";
 
 // Teacher mutations. Every route action calls requireTeacher(request) before these.
@@ -31,11 +36,16 @@ export async function createStudent(formData: FormData): Promise<ActionState> {
   const notes = str(formData, "notes");
   const priceNote = str(formData, "priceNote");
   const programIds = formData.getAll("programIds").map(String).filter(Boolean);
+  // "" = no family, "new" = create one from newFamilyName, otherwise an existing family id
+  const familyChoice = str(formData, "familyId");
+  const newFamilyName = str(formData, "newFamilyName");
+  const guardianName = str(formData, "guardianName");
 
   if (!name) return { error: "Name is required" };
   if (!Number.isFinite(tuitionAmount) || tuitionAmount <= 0) {
     return { error: "Tuition amount must be a positive number" };
   }
+  if (familyChoice === "new" && !newFamilyName) return { error: "Give the new family a name" };
 
   const joinedAtStr = str(formData, "joinedAt");
   if (joinedAtStr && !/^\d{4}-\d{2}-\d{2}$/.test(joinedAtStr)) {
@@ -47,8 +57,22 @@ export async function createStudent(formData: FormData): Promise<ActionState> {
   const firstBill = calculateFirstBill(tuitionAmount, joinedAt);
 
   await prisma.$transaction(async (tx) => {
+    let familyId: string | null = familyChoice && familyChoice !== "new" ? familyChoice : null;
+    if (familyChoice === "new") {
+      const family = await tx.family.create({
+        data: {
+          name: newFamilyName,
+          guardianName: guardianName || null,
+          phone: phone || null,
+          email: email || null,
+        },
+      });
+      familyId = family.id;
+    }
+
     const student = await tx.student.create({
       data: {
+        familyId,
         name,
         phone: phone || null,
         email: email || null,
@@ -126,7 +150,7 @@ export async function recordPayment(formData: FormData): Promise<ActionState> {
   const student = await prisma.student.findUnique({ where: { id: studentId } });
   if (!student) return { error: "Student not found" };
 
-  await prisma.$transaction([
+  const [payment] = await prisma.$transaction([
     prisma.payment.create({ data: { studentId, amount } }),
     prisma.student.update({
       where: { id: studentId },
@@ -137,6 +161,149 @@ export async function recordPayment(formData: FormData): Promise<ActionState> {
     }),
   ]);
 
+  return { ok: true, paymentId: payment.id };
+}
+
+/** Marks every listed sibling's current bill as paid, each for their own amount due. */
+export async function recordFamilyPayment(formData: FormData): Promise<ActionState> {
+  const familyId = str(formData, "familyId");
+  const studentIds = formData.getAll("studentIds").map(String).filter(Boolean);
+  if (!familyId || studentIds.length === 0) return { error: "Pick at least one student" };
+
+  const students = await prisma.student.findMany({
+    where: { id: { in: studentIds }, familyId, active: true },
+  });
+
+  await prisma.$transaction(
+    students.flatMap((student) => [
+      prisma.payment.create({ data: { studentId: student.id, amount: amountDue(student) } }),
+      prisma.student.update({
+        where: { id: student.id },
+        data: { nextDueDate: nextBillingDate(student.nextDueDate), firstPaymentAmount: null },
+      }),
+    ]),
+  );
+  return { ok: true };
+}
+
+export async function emailReceipt(formData: FormData): Promise<ActionState> {
+  const paymentId = str(formData, "paymentId");
+  const payment = await prisma.payment.findUnique({
+    where: { id: paymentId },
+    include: { student: { include: { family: true } } },
+  });
+  if (!payment) return { error: "Payment not found" };
+
+  const to = payment.student.family?.email || payment.student.email;
+  if (!to) return { error: "There's no email address for this student or their family." };
+
+  const result = await sendReceiptEmail({
+    to,
+    studentName: payment.student.name,
+    code: receiptCode(payment.receiptNumber),
+    amount: formatCurrency(payment.amount),
+    date: formatDate(payment.paidAt),
+    receiptUrl: `${appUrl()}/receipts/${payment.id}`,
+  });
+  if (!result.sent) return { error: result.error };
+  return { ok: true, message: `Receipt emailed to ${to}` };
+}
+
+function familyFields(formData: FormData) {
+  return {
+    name: str(formData, "name"),
+    guardianName: str(formData, "guardianName") || null,
+    phone: str(formData, "phone") || null,
+    email: str(formData, "email") || null,
+  };
+}
+
+export async function createFamily(formData: FormData): Promise<ActionState> {
+  const data = familyFields(formData);
+  if (!data.name) return { error: "Family name is required" };
+  const family = await prisma.family.create({ data });
+  throw redirect(`/families/${family.id}`);
+}
+
+export async function updateFamily(formData: FormData): Promise<ActionState> {
+  const familyId = str(formData, "familyId");
+  const data = familyFields(formData);
+  if (!data.name) return { error: "Family name is required" };
+  await prisma.family.update({ where: { id: familyId }, data });
+  return { ok: true, message: "Saved" };
+}
+
+export async function deleteFamily(formData: FormData): Promise<ActionState> {
+  const familyId = str(formData, "familyId");
+  // Students stay; they're just no longer grouped.
+  await prisma.family.delete({ where: { id: familyId } });
+  throw redirect("/families");
+}
+
+export async function setStudentFamily(formData: FormData): Promise<ActionState> {
+  const studentId = str(formData, "studentId");
+  const familyId = str(formData, "familyId") || null;
+  if (!studentId) return { error: "Missing student" };
+  await prisma.student.update({ where: { id: studentId }, data: { familyId } });
+  return { ok: true };
+}
+
+const PROGRESS_KIND_VALUES = ["SABAQ", "SABQI", "MANZIL", "NAZRA"] as const;
+
+function optionalInt(formData: FormData, key: string) {
+  const raw = str(formData, key);
+  if (!raw) return null;
+  const n = Number(raw);
+  return Number.isInteger(n) && n >= 0 ? n : NaN;
+}
+
+export async function logProgress(formData: FormData): Promise<ActionState> {
+  const studentId = str(formData, "studentId");
+  const kind = str(formData, "kind") as ProgressKind;
+  const surah = Number(formData.get("surah"));
+  const fromAyah = optionalInt(formData, "fromAyah");
+  const toAyah = optionalInt(formData, "toAyah");
+  const quality = optionalInt(formData, "quality");
+  const mistakes = optionalInt(formData, "mistakes");
+  const note = str(formData, "note");
+  const dateStr = str(formData, "date");
+
+  if (!studentId) return { error: "Missing student" };
+  if (!PROGRESS_KIND_VALUES.includes(kind as (typeof PROGRESS_KIND_VALUES)[number])) {
+    return { error: "Pick sabaq, sabqi, manzil or nazra" };
+  }
+  if (!Number.isInteger(surah) || surah < 1 || surah > 114) return { error: "Pick a surah" };
+  const ayat = SURAHS[surah - 1].ayat;
+  for (const [label, value] of [["From ayah", fromAyah], ["To ayah", toAyah]] as const) {
+    if (Number.isNaN(value) || (value !== null && (value < 1 || value > ayat))) {
+      return { error: `${label} must be between 1 and ${ayat} for ${SURAHS[surah - 1].name}` };
+    }
+  }
+  if (fromAyah && toAyah && toAyah < fromAyah) return { error: "To ayah can't be before from ayah" };
+  if (Number.isNaN(mistakes)) return { error: "Mistakes must be a whole number" };
+  if (quality !== null && ![1, 2, 3].includes(quality)) return { error: "Pick how it went" };
+  if (dateStr && !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return { error: "Pick a valid date" };
+
+  await prisma.progressEntry.create({
+    data: {
+      studentId,
+      kind,
+      surah,
+      fromAyah,
+      toAyah: toAyah ?? fromAyah,
+      quality,
+      mistakes,
+      note: note || null,
+      date: dateStr ? parseDateOnly(dateStr) : startOfDay(new Date()),
+    },
+  });
+  return { ok: true };
+}
+
+export async function deleteProgress(formData: FormData): Promise<ActionState> {
+  const entryId = str(formData, "entryId");
+  const studentId = str(formData, "studentId");
+  await prisma.progressEntry.deleteMany({ where: { id: entryId, studentId } });
   return { ok: true };
 }
 

@@ -5,13 +5,14 @@ import { prisma } from "@/lib/prisma.server";
 import { requireTeacher } from "@/lib/auth/session.server";
 import { getMonthlyRevenue } from "@/lib/reports.server";
 import { recordPayment, setStudentActive } from "@/lib/mutations.server";
+import { emailConfigured } from "@/lib/email.server";
 import { getPaymentStatus } from "@/lib/status";
 import StudentRow from "@/components/StudentRow";
 import MonthLedger from "@/components/MonthLedger";
 import TodayLine from "@/components/TodayLine";
-import type { Program, Student } from "@/generated/prisma/client";
+import type { Family, Program, Student } from "@/generated/prisma/client";
 
-type StudentWithPrograms = Student & { enrollments: { program: Program }[] };
+type StudentWithPrograms = Student & { enrollments: { program: Program }[]; family: Family | null };
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireTeacher(request);
@@ -20,13 +21,13 @@ export async function loader({ request }: Route.LoaderArgs) {
     prisma.student.findMany({
       where: { active: true },
       orderBy: { nextDueDate: "asc" },
-      include: { enrollments: { include: { program: true } } },
+      include: { enrollments: { include: { program: true } }, family: true },
     }),
     getMonthlyRevenue(1),
     prisma.program.count({ where: { active: true } }),
   ]);
 
-  return { students, month, programCount };
+  return { students, month, programCount, canEmail: emailConfigured() };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -44,7 +45,7 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 export default function Home({ loaderData }: Route.ComponentProps) {
-  const { students, month, programCount } = loaderData;
+  const { students, month, programCount, canEmail } = loaderData;
 
   const overdue = students.filter((s) => getPaymentStatus(s.nextDueDate).status === "overdue");
   const dueSoon = students.filter((s) => getPaymentStatus(s.nextDueDate).status === "due_soon");
@@ -65,9 +66,9 @@ export default function Home({ loaderData }: Route.ComponentProps) {
             month={month}
             counts={{ overdue: overdue.length, dueSoon: dueSoon.length, ok: ok.length }}
           />
-          <StudentGroup title="Needs attention" note="Past their due date" students={overdue} />
-          <StudentGroup title="Due this week" note="Coming up in the next 7 days" students={dueSoon} />
-          <StudentGroup title="Paid up" note="Nothing due for at least a week" students={ok} />
+          <StudentGroup title="Needs attention" note="Past their due date" students={overdue} canEmail={canEmail} />
+          <StudentGroup title="Due this week" note="Coming up in the next 7 days" students={dueSoon} canEmail={canEmail} />
+          <StudentGroup title="Paid up" note="Nothing due for at least a week" students={ok} canEmail={canEmail} />
         </>
       )}
     </div>
@@ -78,10 +79,12 @@ function StudentGroup({
   title,
   note,
   students,
+  canEmail,
 }: {
   title: string;
   note: string;
   students: StudentWithPrograms[];
+  canEmail: boolean;
 }) {
   if (students.length === 0) return null;
 
@@ -95,7 +98,7 @@ function StudentGroup({
       </div>
       <ul className="divide-y divide-stone-200 overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm shadow-stone-900/5">
         {students.map((student) => (
-          <StudentRow key={student.id} student={student} />
+          <StudentRow key={student.id} student={student} canEmail={canEmail} />
         ))}
       </ul>
     </section>

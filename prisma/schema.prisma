@@ -13,7 +13,7 @@ datasource db {
 }
 
 model Student {
-  id                 String       @id @default(cuid())
+  id                 String          @id @default(cuid())
   name               String
   phone              String?
   email              String?
@@ -22,21 +22,76 @@ model Student {
   priceNote          String?
   billingDay         Int
   nextDueDate        DateTime
-  joinedAt           DateTime     @default(now())
-  active             Boolean      @default(true)
+  joinedAt           DateTime        @default(now())
+  active             Boolean         @default(true)
   notes              String?
+  familyId           String?
+  family             Family?         @relation(fields: [familyId], references: [id], onDelete: SetNull)
   payments           Payment[]
+  reminders          Reminder[]
+  progress           ProgressEntry[]
   enrollments        Enrollment[]
   invites            Invite[]
   user               User?
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
 }
 
 // Singleton row (id always 1) holding class-wide billing config.
 model Settings {
-  id         Int @id @default(1)
-  billingDay Int @default(1)
+  id                 Int     @id @default(1)
+  billingDay         Int     @default(1)
+  autoEmailReminders Boolean @default(false)
+}
+
+// Siblings share a family: one contact, one portal view, one combined bill.
+model Family {
+  id           String    @id @default(cuid())
+  name         String
+  guardianName String?
+  phone        String?
+  email        String?
+  students     Student[]
+  createdAt    DateTime  @default(now())
+}
+
+// One row per reminder sent, so the daily job never sends the same one twice.
+model Reminder {
+  id        String   @id @default(cuid())
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  dueDate   DateTime
+  kind      String // "upcoming" | "overdue"
+  channel   String // "email"
+  sentTo    String
+  sentAt    DateTime @default(now())
+
+  @@unique([studentId, dueDate, kind, channel])
+}
+
+enum ProgressKind {
+  SABAQ // new lesson
+  SABQI // recent revision
+  MANZIL // older revision (dhor)
+  NAZRA // reading
+}
+
+model ProgressEntry {
+  id        String       @id @default(cuid())
+  studentId String
+  student   Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  date      DateTime
+  kind      ProgressKind
+  surah     Int
+  fromAyah  Int?
+  toAyah    Int?
+  // 3 excellent, 2 good, 1 needs work
+  quality   Int?
+  mistakes  Int?
+  note      String?
+  createdAt DateTime     @default(now())
+
+  @@index([studentId, date])
 }
 
 enum Role {
@@ -45,13 +100,13 @@ enum Role {
 }
 
 model User {
-  id           String    @id @default(cuid())
-  email        String    @unique
+  id           String   @id @default(cuid())
+  email        String   @unique
   passwordHash String
-  role         Role      @default(MEMBER)
-  studentId    String?   @unique
-  student      Student?  @relation(fields: [studentId], references: [id], onDelete: SetNull)
-  createdAt    DateTime  @default(now())
+  role         Role     @default(MEMBER)
+  studentId    String?  @unique
+  student      Student? @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  createdAt    DateTime @default(now())
 }
 
 model Invite {
@@ -66,13 +121,17 @@ model Invite {
 }
 
 model Payment {
-  id        String   @id @default(cuid())
-  studentId String
-  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  amount    Float
-  paidAt    DateTime @default(now())
-  note      String?
-  createdAt DateTime @default(now())
+  id              String   @id @default(cuid())
+  studentId       String
+  student         Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  amount          Float
+  paidAt          DateTime @default(now())
+  note            String?
+  receiptNumber   Int      @unique @default(autoincrement())
+  // "manual" when the teacher records it, "card" when paid online through Stripe
+  method          String   @default("manual")
+  stripeSessionId String?  @unique
+  createdAt       DateTime @default(now())
 }
 
 model Program {
