@@ -9,8 +9,9 @@ import { formatCurrency } from "@/lib/format";
 import FamilyFields from "@/components/FamilyFields";
 import FormError from "@/components/FormError";
 import { card, pageTitle, primaryButton, sectionTitle } from "@/components/ui";
+import { metaTitle, useT } from "@/lib/useT";
 
-export const meta: Route.MetaFunction = () => [{ title: "Families · Muhasabah" }];
+export const meta: Route.MetaFunction = ({ matches }) => [{ title: metaTitle(matches, "Families") }];
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireTeacher(request);
@@ -27,21 +28,21 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 export default function FamiliesPage({ loaderData, actionData }: Route.ComponentProps) {
+  const t = useT();
   const { families } = loaderData;
   const pending = useNavigation().state !== "idle";
 
   return (
     <div className="mx-auto max-w-3xl">
-      <h1 className={pageTitle}>Families</h1>
+      <h1 className={pageTitle}>{t("Families")}</h1>
       <p className="mt-1 mb-6 max-w-prose text-sm text-stone-500">
-        Group siblings so their parent gets one reminder, sees every child in the portal, and can be
-        marked paid in one go.
+        {t("Group siblings so their parent gets one reminder, sees every child in the portal, and can be marked paid in one go.")}
       </p>
 
       {families.length === 0 ? (
         <div className={`${card} mb-10 flex items-center gap-3 text-sm text-stone-600`}>
           <Users className="h-5 w-5 shrink-0 text-stone-400" />
-          No families yet. Add one below, or pick &quot;New family&quot; when you add a student.
+          {t("No families yet. They're created when people sign up through your links, or you can add one below.")}
         </div>
       ) : (
         <ul className="mb-10 divide-y divide-stone-200 overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm shadow-stone-900/5">
@@ -56,19 +57,19 @@ export default function FamiliesPage({ loaderData, actionData }: Route.Component
                     <p className="font-semibold text-stone-900">{family.name}</p>
                     <p className="truncate text-sm text-stone-500">
                       {family.students.length === 0
-                        ? "No students yet"
+                        ? t("No students yet")
                         : family.students.map((s) => s.name).join(", ")}
                     </p>
                   </div>
-                  <div className="text-right text-sm">
-                    <p className="font-semibold text-stone-900 tabular-nums">{formatCurrency(monthly)}/mo</p>
+                  <div className="text-end text-sm">
+                    <p className="font-semibold text-stone-900 tabular-nums">{t("{amount}/month", { amount: formatCurrency(monthly) })}</p>
                     {owed > 0 ? (
-                      <p className="text-amber-700 tabular-nums">{formatCurrency(owed)} due</p>
+                      <p className="text-amber-700 tabular-nums">{t("{amount} due", { amount: formatCurrency(owed) })}</p>
                     ) : (
-                      <p className="text-stone-500">Paid up</p>
+                      <p className="text-stone-500">{t("Paid up")}</p>
                     )}
                   </div>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-stone-400" />
+                  <ChevronRight className="h-4 w-4 shrink-0 text-stone-400 rtl:-scale-x-100" />
                 </Link>
               </li>
             );
@@ -76,12 +77,12 @@ export default function FamiliesPage({ loaderData, actionData }: Route.Component
         </ul>
       )}
 
-      <h2 className={sectionTitle}>Add a family</h2>
+      <h2 className={sectionTitle}>{t("Add a family")}</h2>
       <Form method="post" className={`${card} space-y-4`}>
         <FormError message={actionData?.error} />
         <FamilyFields />
         <button type="submit" disabled={pending} className={primaryButton}>
-          {pending ? "Adding…" : "Add family"}
+          {pending ? t("Adding…") : t("Add family")}
         </button>
       </Form>
     </div>

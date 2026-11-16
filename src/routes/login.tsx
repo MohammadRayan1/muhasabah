@@ -5,11 +5,12 @@ import { createSessionRedirect, getSession, homeFor } from "@/lib/auth/session.s
 import { verifyPassword } from "@/lib/auth/password.server";
 import FormError from "@/components/FormError";
 import GeometricPattern from "@/components/GeometricPattern";
+import { metaTitle, useT } from "@/lib/useT";
 
 const inputClass =
   "mt-1.5 h-12 w-full rounded-xl border border-stone-300 bg-white px-4 text-[15px] text-stone-900 transition-[border-color,box-shadow] outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/15";
 
-export const meta: Route.MetaFunction = () => [{ title: "Sign in · Muhasabah" }];
+export const meta: Route.MetaFunction = ({ matches }) => [{ title: metaTitle(matches, "Sign in") }];
 
 export async function loader({ request }: Route.LoaderArgs) {
   const session = await getSession(request);
@@ -37,6 +38,7 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 export default function LoginPage({ actionData }: Route.ComponentProps) {
+  const t = useT();
   const pending = useNavigation().state !== "idle";
 
   return (
@@ -49,38 +51,36 @@ export default function LoginPage({ actionData }: Route.ComponentProps) {
         <div className="relative">
           <p
             lang="ar"
-            dir="rtl"
-            className="text-right font-arabic text-6xl leading-[1.3] text-gold sm:text-7xl lg:text-left lg:text-8xl"
+            className="text-end font-arabic text-6xl leading-[1.3] text-gold sm:text-7xl lg:text-start lg:text-8xl"
           >
             محاسبة
           </p>
           <p className="mt-5 max-w-sm text-lg leading-relaxed text-sidebar-foreground lg:mt-8 lg:text-xl">
-            Muhasabah means taking account. Here, that&apos;s your class: who&apos;s enrolled,
-            who&apos;s paid, and what&apos;s due on the 1st.
+            {t("Muhasabah means taking account. Here, that's your class: who's enrolled, who's paid, and what's due on the 1st.")}
           </p>
         </div>
 
-        <p className="relative hidden text-sm text-sidebar-muted lg:block">Tuition tracker</p>
+        <p className="relative hidden text-sm text-sidebar-muted lg:block">{t("Tuition tracker")}</p>
       </section>
 
       <section className="flex items-center justify-center px-6 py-12 sm:px-10">
         <div className="w-full max-w-sm">
-          <h1 className="text-3xl font-bold tracking-tight text-stone-900">Assalamu alaikum</h1>
-          <p className="mt-2 text-stone-500">Welcome back. Sign in to see your class.</p>
+          <h1 className="text-3xl font-bold tracking-tight text-stone-900">{t("Assalamu alaikum")}</h1>
+          <p className="mt-2 text-stone-500">{t("Welcome back. Sign in to see your class.")}</p>
 
           <Form method="post" className="mt-8 space-y-5">
             <FormError message={actionData?.error} />
 
             <div>
               <label htmlFor="email" className="block text-sm font-semibold text-stone-700">
-                Email
+                {t("Email")}
               </label>
               <input id="email" name="email" type="email" autoComplete="email" required className={inputClass} />
             </div>
 
             <div>
               <label htmlFor="password" className="block text-sm font-semibold text-stone-700">
-                Password
+                {t("Password")}
               </label>
               <input
                 id="password"
@@ -97,7 +97,7 @@ export default function LoginPage({ actionData }: Route.ComponentProps) {
               disabled={pending}
               className="h-12 w-full rounded-xl bg-emerald-600 px-4 text-[15px] font-semibold text-white shadow-sm shadow-emerald-900/20 transition-colors hover:bg-emerald-700 disabled:opacity-60"
             >
-              {pending ? "Signing in…" : "Sign in"}
+              {pending ? t("Signing in…") : t("Sign in")}
             </button>
           </Form>
         </div>

@@ -15,9 +15,11 @@ import { formatCurrency, formatDate } from "@/lib/format";
 import type { ActionState } from "@/lib/action-state";
 import FamilyFields from "@/components/FamilyFields";
 import FormError from "@/components/FormError";
+import Arrow from "@/components/Arrow";
 import RemindMenu from "@/components/RemindMenu";
 import Avatar from "@/components/Avatar";
 import { card, input, pageTitle, primaryButton, secondaryButton, sectionTitle } from "@/components/ui";
+import { useT } from "@/lib/useT";
 
 export const meta: Route.MetaFunction = ({ data }) => [
   { title: `${data?.family.name ?? "Family"} · Muhasabah` },
@@ -62,6 +64,7 @@ export async function action({ request, params }: Route.ActionArgs) {
 }
 
 export default function FamilyPage({ loaderData }: Route.ComponentProps) {
+  const t = useT();
   const { family, others, canEmail } = loaderData;
   const students = family.students.map((s) => ({ ...s, family, ...getPaymentStatus(s.nextDueDate) }));
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -73,19 +76,20 @@ export default function FamilyPage({ loaderData }: Route.ComponentProps) {
   return (
     <div className="mx-auto max-w-3xl">
       <Link to="/families" className="text-sm text-stone-500 hover:underline">
-        ← All families
+        <Arrow back /> {t("All families")}
       </Link>
       <div className="mt-3 mb-6 flex flex-wrap items-baseline justify-between gap-3">
         <h1 className={pageTitle}>{family.name}</h1>
         <p className="text-sm text-stone-500 tabular-nums">
-          {students.length} {students.length === 1 ? "student" : "students"} · {formatCurrency(monthly)}/mo
+          {students.length} {students.length === 1 ? t("student") : t("students")} ·{" "}
+          {t("{amount}/month", { amount: formatCurrency(monthly) })}
         </p>
       </div>
 
       <section className="mb-10">
-        <h2 className={sectionTitle}>Children</h2>
+        <h2 className={sectionTitle}>{t("Children")}</h2>
         {students.length === 0 ? (
-          <p className={`${card} text-sm text-stone-500`}>No students in this family yet. Add one below.</p>
+          <p className={`${card} text-sm text-stone-500`}>{t("No students in this family yet. Add one below.")}</p>
         ) : (
           <FamilyPayForm
             // A new key after any due date moves resets the ticks, so a payment can't be recorded twice by accident.
@@ -100,11 +104,11 @@ export default function FamilyPage({ loaderData }: Route.ComponentProps) {
             <input type="hidden" name="intent" value="addStudent" />
             <div className="min-w-48 flex-1">
               <label htmlFor="add-student" className="block text-sm font-medium text-stone-700">
-                Add a student to this family
+                {t("Add a student to this family")}
               </label>
               <select id="add-student" name="studentId" required className={input} defaultValue="">
                 <option value="" disabled>
-                  Choose a student…
+                  {t("Choose a student…")}
                 </option>
                 {others.map((o) => (
                   <option key={o.id} value={o.id}>
@@ -114,24 +118,24 @@ export default function FamilyPage({ loaderData }: Route.ComponentProps) {
               </select>
             </div>
             <button type="submit" disabled={pending} className={secondaryButton}>
-              Add
+              {t("Add")}
             </button>
           </Form>
         ) : null}
       </section>
 
       <section className="mb-10">
-        <h2 className={sectionTitle}>Parent contact</h2>
+        <h2 className={sectionTitle}>{t("Parent contact")}</h2>
         <editFetcher.Form method="post" className={`${card} space-y-4`}>
           <input type="hidden" name="intent" value="update" />
           <FormError message={editFetcher.data?.error} />
           <FamilyFields defaults={family} />
           <div className="flex items-center gap-3">
             <button type="submit" disabled={editFetcher.state !== "idle"} className={primaryButton}>
-              {editFetcher.state !== "idle" ? "Saving…" : "Save"}
+              {editFetcher.state !== "idle" ? t("Saving…") : t("Save")}
             </button>
             {editFetcher.state === "idle" && editFetcher.data?.message ? (
-              <span className="text-sm text-emerald-700">{editFetcher.data.message}</span>
+              <span className="text-sm text-emerald-700">{t(editFetcher.data.message)}</span>
             ) : null}
           </div>
         </editFetcher.Form>
@@ -139,7 +143,7 @@ export default function FamilyPage({ loaderData }: Route.ComponentProps) {
 
       {students.length > 0 ? (
         <section className="mb-10">
-          <h2 className={sectionTitle}>Take a student out of this family</h2>
+          <h2 className={sectionTitle}>{t("Take a student out of this family")}</h2>
           <div className="flex flex-wrap gap-2">
             {students.map((s) => (
               <Form method="post" key={s.id}>
@@ -158,17 +162,17 @@ export default function FamilyPage({ loaderData }: Route.ComponentProps) {
         {confirmDelete ? (
           <Form method="post" className="flex flex-wrap items-center gap-3">
             <input type="hidden" name="intent" value="delete" />
-            <p className="text-sm text-red-700">Delete this family? The students and their payments stay.</p>
+            <p className="text-sm text-red-700">{t("Delete this family? The students and their payments stay.")}</p>
             <button type="button" onClick={() => setConfirmDelete(false)} className="text-sm text-stone-500 hover:underline">
-              Cancel
+              {t("Cancel")}
             </button>
             <button type="submit" className="min-h-10 rounded-xl bg-red-600 px-3 text-sm font-semibold text-white hover:bg-red-700">
-              Yes, delete family
+              {t("Yes, delete family")}
             </button>
           </Form>
         ) : (
           <button type="button" onClick={() => setConfirmDelete(true)} className="text-sm text-stone-500 hover:text-red-700 hover:underline">
-            Delete family
+            {t("Delete family")}
           </button>
         )}
       </section>
@@ -183,6 +187,7 @@ type PayStudent = Parameters<typeof RemindMenu>[0]["student"] & {
 };
 
 function FamilyPayForm({ students, canEmail }: { students: PayStudent[]; canEmail: boolean }) {
+  const t = useT();
   const [selected, setSelected] = useState<Set<string>>(
     () => new Set(students.filter((s) => s.status !== "ok").map((s) => s.id)),
   );
@@ -208,7 +213,7 @@ function FamilyPayForm({ students, canEmail }: { students: PayStudent[]; canEmai
               value={s.id}
               checked={selected.has(s.id)}
               onChange={(e) => toggle(s.id, e.target.checked)}
-              aria-label={`Include ${s.name} in the payment`}
+              aria-label={t("Include {name} in the payment", { name: s.name })}
               className="h-4 w-4"
             />
             <Link to={`/students/${s.id}`} className="flex min-w-0 flex-1 basis-40 items-center gap-3 hover:underline">
@@ -216,12 +221,12 @@ function FamilyPayForm({ students, canEmail }: { students: PayStudent[]; canEmai
               <span className="min-w-0">
                 <span className="block truncate font-semibold text-stone-900">{s.name}</span>
                 <span className="block text-sm text-stone-500">
-                  {formatCurrency(amountDue(s))} due {formatDate(s.nextDueDate)}
+                  {t("{amount} due {date}", { amount: formatCurrency(amountDue(s)), date: formatDate(s.nextDueDate) })}
                 </span>
               </span>
             </Link>
             <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${STATUS_BADGE_STYLES[s.status]}`}>
-              {STATUS_LABEL[s.status]}
+              {t(STATUS_LABEL[s.status])}
             </span>
             {s.status !== "ok" ? <RemindMenu student={s} canEmail={canEmail} /> : null}
           </li>
@@ -234,10 +239,12 @@ function FamilyPayForm({ students, canEmail }: { students: PayStudent[]; canEmai
           className={primaryButton}
         >
           {payFetcher.state !== "idle"
-            ? "Saving…"
-            : `Mark ${selected.size === students.length && students.length > 1 ? "all" : "selected"} paid · ${formatCurrency(selectedTotal)}`}
+            ? t("Saving…")
+            : selected.size === students.length && students.length > 1
+              ? t("Mark all paid · {amount}", { amount: formatCurrency(selectedTotal) })
+              : t("Mark selected paid · {amount}", { amount: formatCurrency(selectedTotal) })}
         </button>
-        <p className="text-xs text-stone-500">Each child&apos;s own bill is recorded and moved to the next 1st.</p>
+        <p className="text-xs text-stone-500">{t("Each child's own bill is recorded and moved to the next 1st.")}</p>
       </div>
       <FormError message={payFetcher.data?.error} />
     </payFetcher.Form>

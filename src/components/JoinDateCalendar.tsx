@@ -1,16 +1,23 @@
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { parseDateOnly, toDateInputValue } from "@/lib/dates";
+import { useLang, useT } from "@/lib/useT";
 
-const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+const WEEKDAYS = {
+  en: ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"],
+  ar: ["ح", "ن", "ث", "ر", "خ", "ج", "س"],
+};
 
-const monthTitle = new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" });
-const dayLabel = new Intl.DateTimeFormat("en-US", {
-  weekday: "long",
-  month: "long",
-  day: "numeric",
-  year: "numeric",
-});
+const formats = {
+  en: {
+    monthTitle: new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" }),
+    dayLabel: new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" }),
+  },
+  ar: {
+    monthTitle: new Intl.DateTimeFormat("ar-u-nu-latn", { month: "long", year: "numeric" }),
+    dayLabel: new Intl.DateTimeFormat("ar-u-nu-latn", { weekday: "long", month: "long", day: "numeric", year: "numeric" }),
+  },
+};
 
 /**
  * Small month calendar for picking the day a student joined. Days from the picked
@@ -27,6 +34,9 @@ export default function JoinDateCalendar({
   value: string;
   onChange: (value: string) => void;
 }) {
+  const t = useT();
+  const lang = useLang();
+  const { monthTitle, dayLabel } = formats[lang];
   const selected = parseDateOnly(value);
   const [view, setView] = useState(() => new Date(selected.getFullYear(), selected.getMonth(), 1));
   const todayValue = toDateInputValue(new Date());
@@ -47,7 +57,9 @@ export default function JoinDateCalendar({
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
-    const step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[e.key];
+    // In Arabic the grid runs right to left, so the left arrow moves forward.
+    const back = lang === "ar" ? "ArrowRight" : "ArrowLeft";
+    const step = { [back]: -1, [back === "ArrowLeft" ? "ArrowRight" : "ArrowLeft"]: 1, ArrowUp: -7, ArrowDown: 7 }[e.key];
     if (!step) return;
     e.preventDefault();
     const grid = e.currentTarget; // React clears currentTarget after the handler returns
@@ -72,10 +84,10 @@ export default function JoinDateCalendar({
         <button
           type="button"
           onClick={() => shiftMonth(-1)}
-          aria-label="Previous month"
+          aria-label={t("Previous month")}
           className="flex h-9 w-9 items-center justify-center rounded-full text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-900"
         >
-          <ChevronLeft className="h-4 w-4" strokeWidth={2.25} />
+          <ChevronLeft className="h-4 w-4 rtl:-scale-x-100" strokeWidth={2.25} />
         </button>
         <p className="text-sm font-semibold text-stone-900" aria-live="polite">
           {monthTitle.format(view)}
@@ -83,22 +95,22 @@ export default function JoinDateCalendar({
         <button
           type="button"
           onClick={() => shiftMonth(1)}
-          aria-label="Next month"
+          aria-label={t("Next month")}
           className="flex h-9 w-9 items-center justify-center rounded-full text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-900"
         >
-          <ChevronRight className="h-4 w-4" strokeWidth={2.25} />
+          <ChevronRight className="h-4 w-4 rtl:-scale-x-100" strokeWidth={2.25} />
         </button>
       </div>
 
       <div className="grid grid-cols-7 text-center text-[11px] font-semibold uppercase tracking-wide text-stone-500">
-        {WEEKDAYS.map((d) => (
+        {WEEKDAYS[lang].map((d) => (
           <span key={d} className="py-1">
             {d}
           </span>
         ))}
       </div>
 
-      <div role="grid" aria-label="Date joined" className="grid grid-cols-7 gap-y-1" onKeyDown={handleKeyDown}>
+      <div role="grid" aria-label={t("Date joined")} className="grid grid-cols-7 gap-y-1" onKeyDown={handleKeyDown}>
         {cells.map((day, i) => {
           if (day === null) return <span key={`blank-${i}`} />;
 
@@ -116,8 +128,8 @@ export default function JoinDateCalendar({
                 isLeftover || (isSelected && selectedDay !== 1 && day !== daysInView)
                   ? "bg-emerald-50"
                   : ""
-              } ${isSelected && selectedDay !== 1 ? "rounded-l-full" : ""} ${
-                isLeftover && day === daysInView ? "rounded-r-full" : ""
+              } ${isSelected && selectedDay !== 1 ? "rounded-s-full" : ""} ${
+                isLeftover && day === daysInView ? "rounded-e-full" : ""
               }`}
             >
               <button
@@ -126,7 +138,7 @@ export default function JoinDateCalendar({
                 onClick={() => pick(day)}
                 tabIndex={isSelected || (!selectedInView && day === 1) ? 0 : -1}
                 aria-pressed={isSelected}
-                aria-label={`${dayLabel.format(new Date(year, month, day))}${isBillingDay ? ", billing day" : ""}${isToday ? ", today" : ""}`}
+                aria-label={`${dayLabel.format(new Date(year, month, day))}${isBillingDay ? `, ${t("billing day")}` : ""}${isToday ? `, ${t("today")}` : ""}`}
                 className={`relative flex h-9 w-9 items-center justify-center rounded-full text-sm tabular-nums transition-colors ${
                   isSelected
                     ? "bg-emerald-600 font-semibold text-white"
@@ -150,9 +162,9 @@ export default function JoinDateCalendar({
 
       <p className="mt-2 flex items-center gap-1.5 px-1 text-xs text-stone-500">
         <span aria-hidden className="h-1 w-1 rounded-full bg-emerald-600" />
-        Billing day (the 1st)
-        <span aria-hidden className="ml-3 h-3 w-5 rounded-full bg-emerald-50 ring-1 ring-emerald-200 ring-inset" />
-        Leftover days
+        {t("Billing day (the 1st)")}
+        <span aria-hidden className="ms-3 h-3 w-5 rounded-full bg-emerald-50 ring-1 ring-emerald-200 ring-inset" />
+        {t("Leftover days")}
       </p>
     </div>
   );

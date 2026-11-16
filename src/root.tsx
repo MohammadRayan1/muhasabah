@@ -8,7 +8,10 @@ import {
 } from "react-router";
 import type { Route } from "./+types/root";
 import ThemeToggle from "@/components/ThemeToggle";
+import LanguageToggle from "@/components/LanguageToggle";
 import { THEME_STORAGE_KEY } from "@/lib/theme";
+import { langFromCookie, setCurrentLang } from "@/lib/i18n";
+import { useLang, useT } from "@/lib/useT";
 import "./app.css";
 
 export const links: Route.LinksFunction = () => [
@@ -17,10 +20,15 @@ export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
   {
     rel: "stylesheet",
-    // Nunito for the interface; Amiri, a classical naskh, for the Arabic wordmark and Bismillah.
-    href: "https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Nunito:wght@400..800&display=swap",
+    // Nunito for the interface, Tajawal for Arabic text in it, and Amiri, a classical
+    // naskh, for the Arabic wordmark and Bismillah.
+    href: "https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Nunito:wght@400..800&family=Tajawal:wght@400;500;700;800&display=swap",
   },
 ];
+
+export function loader({ request }: Route.LoaderArgs) {
+  return { lang: langFromCookie(request.headers.get("Cookie")) };
+}
 
 export const meta: Route.MetaFunction = () => [
   { title: "Muhasabah · محاسبة" },
@@ -34,8 +42,10 @@ const themeScript = `(function(){try{var t=localStorage.getItem(${JSON.stringify
 )});if(t==="dark"||(!t&&window.matchMedia("(prefers-color-scheme: dark)").matches)){document.documentElement.classList.add("dark")}}catch(e){}})();`;
 
 export function Layout({ children }: { children: React.ReactNode }) {
+  const lang = useLang();
+  setCurrentLang(lang);
   return (
-    <html lang="en" className="h-full antialiased" suppressHydrationWarning>
+    <html lang={lang} dir={lang === "ar" ? "rtl" : "ltr"} className="h-full antialiased" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -45,6 +55,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </head>
       <body className="flex min-h-full flex-col">
         {children}
+        <LanguageToggle />
         <ThemeToggle />
         <ScrollRestoration />
         <Scripts />
@@ -58,6 +69,7 @@ export default function App() {
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+  const t = useT();
   let title = "Something went wrong";
   let details = "Please try again. If it keeps happening, refresh the page.";
 
@@ -74,10 +86,10 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center px-4 text-center">
-      <h1 className="text-xl font-bold text-stone-900">{title}</h1>
-      <p className="mt-2 text-sm text-stone-500">{details}</p>
+      <h1 className="text-xl font-bold text-stone-900">{t(title)}</h1>
+      <p className="mt-2 text-sm text-stone-500">{t(details)}</p>
       <a href="/" className="mt-6 text-sm font-semibold text-emerald-700 hover:underline">
-        Back to the dashboard
+        {t("Back to the dashboard")}
       </a>
     </main>
   );

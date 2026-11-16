@@ -4,11 +4,13 @@ import type { ActionState } from "@/lib/action-state";
 import FormError from "@/components/FormError";
 import DayOptionsFields from "@/components/DayOptionsFields";
 import { input, label, secondaryButton } from "@/components/ui";
+import { useT } from "@/lib/useT";
 
 type Program = { id: string; price: number; daysPerWeek: number; dayOptions: number[] };
 
 /** Edit an existing program's price, days a week and the day counts parents can pick. */
 export default function ProgramDaysForm({ program }: { program: Program }) {
+  const t = useT();
   const fetcher = useFetcher<ActionState>();
   const [price, setPrice] = useState(String(program.price));
   const pending = fetcher.state !== "idle";
@@ -20,7 +22,7 @@ export default function ProgramDaysForm({ program }: { program: Program }) {
       <FormError message={fetcher.data?.error} />
       <div className="max-w-48">
         <label htmlFor={`${program.id}-price`} className={label}>
-          Price for all days ($/month)
+          {t("Price for all days ($/month)")}
         </label>
         <input
           id={`${program.id}-price`}
@@ -42,10 +44,10 @@ export default function ProgramDaysForm({ program }: { program: Program }) {
       />
       <div className="flex items-center gap-3">
         <button type="submit" disabled={pending} className={secondaryButton}>
-          {pending ? "Saving…" : "Save"}
+          {pending ? t("Saving…") : t("Save")}
         </button>
         {fetcher.state === "idle" && fetcher.data?.message ? (
-          <span className="text-sm text-emerald-700">{fetcher.data.message}</span>
+          <span className="text-sm text-emerald-700">{t(fetcher.data.message)}</span>
         ) : null}
       </div>
     </fetcher.Form>

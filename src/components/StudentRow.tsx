@@ -4,6 +4,8 @@ import { formatCurrency, formatDate } from "@/lib/format";
 import Avatar from "@/components/Avatar";
 import RemindMenu from "@/components/RemindMenu";
 import type { Student, Program } from "@/generated/prisma/client";
+import { daysLabel } from "@/lib/pricing";
+import { useT } from "@/lib/useT";
 
 const DUE_TEXT: Record<PaymentStatus, string> = {
   overdue: "text-red-700",
@@ -11,10 +13,10 @@ const DUE_TEXT: Record<PaymentStatus, string> = {
   ok: "text-stone-600",
 };
 
-function dueDateLabel(daysUntilDue: number, status: PaymentStatus) {
+export function dueDateLabel(daysUntilDue: number, status: PaymentStatus) {
   if (status === "overdue") {
     const days = Math.abs(daysUntilDue);
-    return `${days} day${days === 1 ? "" : "s"} overdue`;
+    return days === 1 ? "1 day overdue" : `${days} days overdue`;
   }
   if (daysUntilDue === 0) return "Due today";
   if (daysUntilDue === 1) return "Due tomorrow";
@@ -27,9 +29,10 @@ type StudentWithPrograms = Student & {
 };
 
 export default function StudentRow({ student, canEmail = false }: { student: StudentWithPrograms; canEmail?: boolean }) {
+  const t = useT();
   const { status, daysUntilDue } = getPaymentStatus(student.nextDueDate);
   const programs = student.enrollments
-    .map((e) => (e.daysPerWeek ? `${e.program.name} (${e.daysPerWeek}d)` : e.program.name))
+    .map((e) => (e.daysPerWeek ? `${e.program.name} (${t(daysLabel(e.daysPerWeek))})` : e.program.name))
     .join(", ");
   const amountDue = student.firstPaymentAmount ?? student.tuitionAmount;
   const payFetcher = useFetcher();
@@ -45,16 +48,16 @@ export default function StudentRow({ student, canEmail = false }: { student: Stu
             {student.name}
           </p>
           <p className="truncate text-sm text-stone-500">
-            {programs || "No programs"} · {formatCurrency(student.tuitionAmount)}/mo
+            {programs || t("No programs")} · {t("{amount}/month", { amount: formatCurrency(student.tuitionAmount) })}
           </p>
         </div>
       </Link>
 
       <div className="w-36 shrink-0">
-        <p className={`text-sm font-semibold ${DUE_TEXT[status]}`}>{dueDateLabel(daysUntilDue, status)}</p>
+        <p className={`text-sm font-semibold ${DUE_TEXT[status]}`}>{t(dueDateLabel(daysUntilDue, status))}</p>
         <p className="text-xs text-stone-500">
           {formatDate(student.nextDueDate)}
-          {student.firstPaymentAmount != null ? " · first bill" : ""}
+          {student.firstPaymentAmount != null ? ` · ${t("first bill")}` : ""}
         </p>
       </div>
 
@@ -63,8 +66,8 @@ export default function StudentRow({ student, canEmail = false }: { student: Stu
           <input type="hidden" name="intent" value="recordPayment" />
           <input type="hidden" name="studentId" value={student.id} />
           <label className="relative">
-            <span className="sr-only">Amount paid by {student.name}</span>
-            <span aria-hidden className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm text-stone-500">
+            <span className="sr-only">{t("Amount paid by {name}", { name: student.name })}</span>
+            <span aria-hidden className="pointer-events-none absolute top-1/2 start-3 -translate-y-1/2 text-sm text-stone-500">
               $
             </span>
             <input
@@ -74,7 +77,7 @@ export default function StudentRow({ student, canEmail = false }: { student: Stu
               min="0.01"
               defaultValue={amountDue}
               required
-              className="h-10 w-24 rounded-xl border border-stone-300 bg-white pr-2 pl-6 text-sm text-stone-900 tabular-nums outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/15"
+              className="h-10 w-24 rounded-xl border border-stone-300 bg-white pe-2 ps-6 text-sm text-stone-900 tabular-nums outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/15"
             />
           </label>
           <button
@@ -82,7 +85,7 @@ export default function StudentRow({ student, canEmail = false }: { student: Stu
             disabled={paying}
             className="h-10 rounded-xl bg-emerald-600 px-3.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-60"
           >
-            {paying ? "Saving…" : "Mark paid"}
+            {paying ? t("Saving…") : t("Mark paid")}
           </button>
         </payFetcher.Form>
         {status !== "ok" ? <RemindMenu student={student} canEmail={canEmail} /> : null}
@@ -94,7 +97,7 @@ export default function StudentRow({ student, canEmail = false }: { student: Stu
             type="submit"
             className="text-xs text-stone-500 underline-offset-4 transition-colors hover:text-red-700 hover:underline"
           >
-            Remove
+            {t("Remove")}
           </button>
         </removeFetcher.Form>
       </div>

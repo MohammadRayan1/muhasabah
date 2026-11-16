@@ -17,10 +17,9 @@ import { formatCurrency, formatDate } from "@/lib/format";
 import FormError from "@/components/FormError";
 import { ProgressList, ProgressSummary } from "@/components/ProgressLog";
 import { card, primaryButton } from "@/components/ui";
+import { metaTitle, useT } from "@/lib/useT";
 
-export const meta: Route.MetaFunction = () => [
-  { title: "Your portal · Muhasabah" },
-];
+export const meta: Route.MetaFunction = ({ matches }) => [{ title: metaTitle(matches, "Your portal") }];
 
 export async function loader({ request }: Route.LoaderArgs) {
   const session = await requireUser(request);
@@ -89,10 +88,11 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 function LogoutButton({ className }: { className: string }) {
+  const t = useT();
   return (
     <Form method="post" action="/logout">
       <button type="submit" className={className}>
-        Log out
+        {t("Log out")}
       </button>
     </Form>
   );
@@ -102,6 +102,7 @@ export default function PortalPage({
   loaderData,
   actionData,
 }: Route.ComponentProps) {
+  const t = useT();
   const { students, email, canPayOnline, paid, welcome } = loaderData;
   const navigation = useNavigation();
 
@@ -109,7 +110,7 @@ export default function PortalPage({
     return (
       <main className="mx-auto max-w-2xl px-4 py-10 text-center">
         <p className="text-sm text-stone-500">
-          Your account isn&apos;t linked to a student yet. Contact your teacher.
+          {t("Your account isn't linked to a student yet. Contact your teacher.")}
         </p>
         <div className="mt-4">
           <LogoutButton className="text-sm text-stone-500 hover:underline" />
@@ -122,11 +123,11 @@ export default function PortalPage({
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-10">
-      <div className="mb-8 flex items-start justify-between gap-4 pr-14">
+      <div className="mb-8 flex items-start justify-between gap-4 pe-28">
         <div>
           <p className="mb-1 text-sm font-medium text-emerald-700">
             Muhasabah{" "}
-            <span lang="ar" dir="rtl">
+            <span lang="ar">
               محاسبة
             </span>
           </p>
@@ -140,14 +141,13 @@ export default function PortalPage({
 
       {paid ? (
         <p className="mb-6 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
-          <CheckCircle2 className="h-4 w-4" /> JazakAllahu khayran! Your payment
-          went through. It can take a minute to show up below.
+          <CheckCircle2 className="h-4 w-4" />{" "}
+          {t("JazakAllahu khayran! Your payment went through. It can take a minute to show up below.")}
         </p>
       ) : null}
       {welcome ? (
         <p className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
-          JazakAllahu khayran for signing up! Your teacher will confirm soon.
-          Once they do, bills and progress show up here.
+          {t("JazakAllahu khayran for signing up! Your teacher will confirm soon. Once they do, bills and progress show up here.")}
         </p>
       ) : null}
       <FormError message={actionData?.error} />
@@ -181,12 +181,12 @@ export default function PortalPage({
               {student.pendingApproval ? (
                 <div className={`${card} border-amber-200 bg-amber-50`}>
                   <p className="font-semibold text-amber-700">
-                    Waiting for your teacher to confirm
+                    {t("Waiting for your teacher to confirm")}
                   </p>
                   <p className="mt-1 text-sm text-stone-600">
-                    Starting {formatDate(student.joinedAt)} ·{" "}
+                    {t("Starting {date}", { date: formatDate(student.joinedAt) })} ·{" "}
                     {student.enrollments
-                      .map((e) => `${e.program.name}, ${daysLabel(e.daysPerWeek ?? e.program.daysPerWeek)}`)
+                      .map((e) => `${e.program.name}, ${t(daysLabel(e.daysPerWeek ?? e.program.daysPerWeek))}`)
                       .join(" · ")}
                   </p>
                 </div>
@@ -196,17 +196,17 @@ export default function PortalPage({
                     className={`${card} mb-6 flex flex-wrap items-center justify-between gap-4`}
                   >
                     <div>
-                      <p className="text-sm text-stone-500">Next bill</p>
+                      <p className="text-sm text-stone-500">{t("Next bill")}</p>
                       <p className="text-2xl font-bold text-stone-900 tabular-nums">
                         {formatCurrency(amountDue(student))}
-                        <span className="ml-2 text-base font-medium text-stone-500">
-                          due {formatDate(student.nextDueDate)}
+                        <span className="ms-2 text-base font-medium text-stone-500">
+                          {t("due {date}", { date: formatDate(student.nextDueDate) })}
                         </span>
                       </p>
                       <span
                         className={`mt-1 inline-block rounded-full border px-2 py-0.5 text-xs font-medium ${STATUS_BADGE_STYLES[status]}`}
                       >
-                        {STATUS_LABEL[status]}
+                        {t(STATUS_LABEL[status])}
                       </span>
                     </div>
                     {canPayOnline ? (
@@ -223,8 +223,8 @@ export default function PortalPage({
                         >
                           <CreditCard className="h-4 w-4" />
                           {paying
-                            ? "Opening…"
-                            : `Pay ${formatCurrency(amountDue(student))} online`}
+                            ? t("Opening…")
+                            : t("Pay {amount} online", { amount: formatCurrency(amountDue(student)) })}
                         </button>
                       </Form>
                     ) : null}
@@ -235,20 +235,20 @@ export default function PortalPage({
                       <p className="text-lg font-semibold text-stone-900">
                         {formatCurrency(student.tuitionAmount)}
                       </p>
-                      <p className="text-sm text-stone-500">Tuition / month</p>
+                      <p className="text-sm text-stone-500">{t("Tuition / month")}</p>
                     </div>
                     <div className={card}>
                       <p className="text-lg font-semibold text-stone-900">
                         {formatCurrency(totalPaid)}
                       </p>
-                      <p className="text-sm text-stone-500">Total paid</p>
+                      <p className="text-sm text-stone-500">{t("Total paid")}</p>
                     </div>
                   </div>
 
                   {student.enrollments.length > 0 ? (
                     <div className="mb-6">
                       <h3 className="mb-2 font-bold text-stone-900">
-                        Programs
+                        {t("Programs")}
                       </h3>
                       <div className="space-y-2">
                         {student.enrollments.map((enrollment) => (
@@ -256,8 +256,8 @@ export default function PortalPage({
                             <p className="font-medium text-stone-900">
                               {enrollment.program.name}
                               {enrollment.daysPerWeek ? (
-                                <span className="ml-2 text-sm font-normal text-stone-500">
-                                  {daysLabel(enrollment.daysPerWeek)}
+                                <span className="ms-2 text-sm font-normal text-stone-500">
+                                  {t(daysLabel(enrollment.daysPerWeek))}
                                 </span>
                               ) : null}
                             </p>
@@ -275,7 +275,7 @@ export default function PortalPage({
                   {student.progress.length > 0 ? (
                     <div className="mb-6">
                       <h3 className="mb-2 font-bold text-stone-900">
-                        Quran progress
+                        {t("Quran progress")}
                       </h3>
                       <ProgressSummary entries={student.progress} />
                       <ProgressList entries={student.progress} />
@@ -283,23 +283,23 @@ export default function PortalPage({
                   ) : null}
 
                   <h3 className="mb-2 font-bold text-stone-900">
-                    Payment history
+                    {t("Payment history")}
                   </h3>
                   {student.payments.length === 0 ? (
                     <p className="text-sm text-stone-500">
-                      No payments recorded yet.
+                      {t("No payments recorded yet.")}
                     </p>
                   ) : (
                     <div className="overflow-x-auto rounded-2xl border border-stone-200 bg-white shadow-sm shadow-stone-900/5">
                       <table className="w-full text-sm">
-                        <thead className="bg-stone-50 text-left text-stone-500">
+                        <thead className="bg-stone-50 text-start text-stone-500">
                           <tr>
-                            <th className="px-4 py-2 font-medium">Date</th>
-                            <th className="px-4 py-2 text-right font-medium">
-                              Amount
+                            <th className="px-4 py-2 font-medium">{t("Date")}</th>
+                            <th className="px-4 py-2 text-end font-medium">
+                              {t("Amount")}
                             </th>
-                            <th className="px-4 py-2 text-right font-medium">
-                              Receipt
+                            <th className="px-4 py-2 text-end font-medium">
+                              {t("Receipt")}
                             </th>
                           </tr>
                         </thead>
@@ -309,10 +309,10 @@ export default function PortalPage({
                               <td className="px-4 py-3 text-stone-900">
                                 {formatDate(payment.paidAt)}
                               </td>
-                              <td className="px-4 py-3 text-right text-stone-700">
+                              <td className="px-4 py-3 text-end text-stone-700">
                                 {formatCurrency(payment.amount)}
                               </td>
-                              <td className="px-4 py-3 text-right">
+                              <td className="px-4 py-3 text-end">
                                 <Link
                                   to={`/receipts/${payment.id}`}
                                   className="text-emerald-700 hover:underline"

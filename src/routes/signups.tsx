@@ -12,9 +12,11 @@ import type { ActionState } from "@/lib/action-state";
 import FormError from "@/components/FormError";
 import NewSignupLinkForm from "@/components/NewSignupLinkForm";
 import CopyLinkButton from "@/components/CopyLinkButton";
+import Arrow from "@/components/Arrow";
 import { card, input, pageTitle, primaryButton, sectionTitle } from "@/components/ui";
+import { metaTitle, useT } from "@/lib/useT";
 
-export const meta: Route.MetaFunction = () => [{ title: "Sign-ups · Muhasabah" }];
+export const meta: Route.MetaFunction = ({ matches }) => [{ title: metaTitle(matches, "Sign-ups") }];
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireTeacher(request);
@@ -69,30 +71,30 @@ export async function action({ request }: Route.ActionArgs) {
   }
 }
 
-function linkStatus(link: { usedAt: Date | null; expiresAt: Date }) {
-  if (link.usedAt) return { text: `Used ${formatDate(link.usedAt)}`, style: "border-emerald-200 bg-emerald-50 text-emerald-700" };
-  if (link.expiresAt < new Date()) return { text: "Expired", style: "border-stone-200 bg-stone-50 text-stone-500" };
-  return { text: `Open until ${formatDate(link.expiresAt)}`, style: "border-amber-200 bg-amber-50 text-amber-700" };
+function linkStatus(link: { usedAt: Date | null; expiresAt: Date }, t: (s: string, v?: Record<string, string>) => string) {
+  if (link.usedAt) return { text: t("Used {date}", { date: formatDate(link.usedAt) }), style: "border-emerald-200 bg-emerald-50 text-emerald-700" };
+  if (link.expiresAt < new Date()) return { text: t("Expired"), style: "border-stone-200 bg-stone-50 text-stone-500" };
+  return { text: t("Open until {date}", { date: formatDate(link.expiresAt) }), style: "border-amber-200 bg-amber-50 text-amber-700" };
 }
 
 export default function SignupsPage({ loaderData }: Route.ComponentProps) {
+  const t = useT();
   const { waiting, links, programs } = loaderData;
 
   return (
     <div className="mx-auto max-w-3xl">
-      <h1 className={pageTitle}>Sign-ups</h1>
+      <h1 className={pageTitle}>{t("Sign-ups")}</h1>
       <p className="mt-1 mb-8 max-w-prose text-sm text-stone-500">
-        Make a link for each family and send it. Parents fill in their details and pick a program and
-        how many days a week for each child. You review it here, then approve or decline.
+        {t("Make a link and send it. People sign up themselves or their children, and pick a program and how many days a week. You review it here, then approve or decline.")}
       </p>
 
       <section className="mb-10">
         <h2 className={sectionTitle}>
-          Waiting for you <span className="font-semibold text-stone-500 tabular-nums">{waiting.length}</span>
+          {t("Waiting for you")} <span className="font-semibold text-stone-500 tabular-nums">{waiting.length}</span>
         </h2>
         {waiting.length === 0 ? (
           <p className={`${card} flex items-center gap-2 text-sm text-stone-500`}>
-            <UserCheck className="h-5 w-5 text-stone-400" /> No new sign-ups right now.
+            <UserCheck className="h-5 w-5 text-stone-400" /> {t("No new sign-ups right now.")}
           </p>
         ) : (
           <div className="space-y-4">
@@ -104,28 +106,28 @@ export default function SignupsPage({ loaderData }: Route.ComponentProps) {
       </section>
 
       <section id="new-link" className="mb-10 scroll-mt-6">
-        <h2 className={sectionTitle}>Make a sign-up link</h2>
+        <h2 className={sectionTitle}>{t("Make a sign-up link")}</h2>
         <NewSignupLinkForm hasPrograms={programs.length > 0} />
       </section>
 
       {links.length > 0 ? (
         <section>
-          <h2 className={sectionTitle}>Your links</h2>
+          <h2 className={sectionTitle}>{t("Your links")}</h2>
           <ul className="divide-y divide-stone-200 rounded-2xl border border-stone-200 bg-white shadow-sm shadow-stone-900/5">
             {links.map((link) => {
-              const status = linkStatus(link);
+              const status = linkStatus(link, t);
               const open = !link.usedAt && link.expiresAt >= new Date();
-              const message = `Assalamu alaikum! Here's your link to sign up for class: ${link.url}`;
+              const message = t("Assalamu alaikum! Here's your link to sign up for class: {url}", { url: link.url });
               return (
                 <li key={link.id} className="space-y-2 px-4 py-3 sm:px-5">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="font-semibold text-stone-900">{link.label || "Sign-up link"}</p>
+                    <p className="font-semibold text-stone-900">{link.label || t("Sign-up link")}</p>
                     <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${status.style}`}>{status.text}</span>
                   </div>
                   {link.programNames.length > 0 ? (
                     <p className="text-sm text-stone-500">
                       {link.programNames.join(", ")}
-                      {link.price ? ` · ${formatCurrency(link.price)}/mo per child` : ""}
+                      {link.price ? ` · ${t("{amount}/month", { amount: formatCurrency(link.price) })}` : ""}
                     </p>
                   ) : null}
                   {open ? (
@@ -139,20 +141,20 @@ export default function SignupsPage({ loaderData }: Route.ComponentProps) {
                           rel="noreferrer"
                           className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-stone-300 bg-white px-3 text-sm font-semibold text-stone-700 hover:bg-stone-50"
                         >
-                          <MessageCircle className="h-4 w-4 text-emerald-700" /> Send on WhatsApp
+                          <MessageCircle className="h-4 w-4 text-emerald-700" /> {t("Send on WhatsApp")}
                         </a>
                         <Form method="post">
                           <input type="hidden" name="intent" value="revokeLink" />
                           <input type="hidden" name="linkId" value={link.id} />
                           <button type="submit" className="h-9 px-2 text-sm text-stone-500 hover:text-red-700 hover:underline">
-                            Cancel link
+                            {t("Cancel link")}
                           </button>
                         </Form>
                       </div>
                     </>
                   ) : link.familyId ? (
                     <Link to={`/families/${link.familyId}`} className="text-sm text-emerald-700 hover:underline">
-                      See family →
+                      {t("See family")} <Arrow />
                     </Link>
                   ) : null}
                 </li>
@@ -177,15 +179,27 @@ type PendingProps = {
 };
 
 function PendingFamily({ family, students }: PendingProps) {
+  const t = useT();
   const fetcher = useFetcher<ActionState>();
   const busy = fetcher.state !== "idle";
   const intent = fetcher.formData?.get("intent");
+  // Someone who signed up themselves: one student, no separate parent.
+  const individual = !family.guardianName && students.length === 1;
 
   return (
     <fetcher.Form method="post" className={`${card} space-y-4`}>
       <input type="hidden" name="familyId" value={family.id} />
       <div>
-        <p className="text-lg font-bold text-stone-900">{family.name}</p>
+        <p className="flex flex-wrap items-center gap-2 text-lg font-bold text-stone-900">
+          {family.name}
+          <span className="rounded-full border border-stone-200 bg-stone-50 px-2 py-0.5 text-xs font-semibold text-stone-600">
+            {individual
+              ? t("Individual")
+              : students.length > 1
+                ? t("Family · {n} children", { n: students.length })
+                : t("Family")}
+          </span>
+        </p>
         <p className="text-sm text-stone-500">
           {[family.guardianName, family.phone, family.email].filter(Boolean).join(" · ")}
         </p>
@@ -200,16 +214,20 @@ function PendingFamily({ family, students }: PendingProps) {
                 <p className="font-semibold text-stone-900">{s.name}</p>
                 <p className="text-xs text-stone-500">
                   {s.enrollments
-                    .map((e) => `${e.program.name}, ${daysLabel(e.daysPerWeek ?? e.program.daysPerWeek)}`)
+                    .map((e) => `${e.program.name}, ${t(daysLabel(e.daysPerWeek ?? e.program.daysPerWeek))}`)
                     .join(" · ")}
                 </p>
                 <p className="text-xs text-stone-500">
-                  Starts {formatDate(s.joinedAt)} · first bill {formatCurrency(bill.total)} due {formatDate(bill.dueDate)}
+                  {t("Starts {start} · first bill {amount} due {due}", {
+                    start: formatDate(s.joinedAt),
+                    amount: formatCurrency(bill.total),
+                    due: formatDate(bill.dueDate),
+                  })}
                 </p>
               </div>
               <div className="w-32">
                 <label htmlFor={`price-${s.id}`} className="block text-xs font-medium text-stone-600">
-                  $/month
+                  {t("$/month")}
                 </label>
                 <input
                   id={`price-${s.id}`}
@@ -229,7 +247,7 @@ function PendingFamily({ family, students }: PendingProps) {
       <FormError message={fetcher.data?.error} />
       <div className="flex flex-wrap items-center gap-3">
         <button type="submit" name="intent" value="approve" disabled={busy} className={primaryButton}>
-          {busy && intent === "approve" ? "Approving…" : `Approve ${students.length > 1 ? `all ${students.length}` : ""}`}
+          {busy && intent === "approve" ? t("Approving…") : students.length > 1 ? t("Approve all {n}", { n: students.length }) : t("Approve")}
         </button>
         <button
           type="submit"
@@ -237,11 +255,11 @@ function PendingFamily({ family, students }: PendingProps) {
           value="decline"
           disabled={busy}
           onClick={(e) => {
-            if (!window.confirm(`Decline ${family.name}? Their sign-up and login will be removed.`)) e.preventDefault();
+            if (!window.confirm(t("Decline {name}? Their sign-up and login will be removed.", { name: family.name }))) e.preventDefault();
           }}
           className="min-h-11 rounded-xl px-3 text-sm font-semibold text-stone-500 hover:text-red-700"
         >
-          {busy && intent === "decline" ? "Declining…" : "Decline"}
+          {busy && intent === "decline" ? t("Declining…") : t("Decline")}
         </button>
       </div>
     </fetcher.Form>

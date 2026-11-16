@@ -4,8 +4,10 @@ import type { ActionState } from "@/lib/action-state";
 import { useSubmitGuard } from "@/hooks/useSubmitGuard";
 import FormError from "@/components/FormError";
 import DayOptionsFields from "@/components/DayOptionsFields";
+import { useT } from "@/lib/useT";
 
 export default function NewProgramForm() {
+  const t = useT();
   const fetcher = useFetcher<ActionState>();
   const pending = fetcher.state !== "idle";
   const onSubmit = useSubmitGuard(pending);
@@ -30,13 +32,13 @@ export default function NewProgramForm() {
 
       <div>
         <label htmlFor="name" className="block text-sm font-medium text-stone-700">
-          Name
+          {t("Name")}
         </label>
         <input
           id="name"
           name="name"
           type="text"
-          placeholder="Weekend Program"
+          placeholder={t("Weekday Program")}
           required
           className="mt-1 w-full rounded-xl border border-stone-300 px-3 py-2 text-sm"
         />
@@ -45,26 +47,27 @@ export default function NewProgramForm() {
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label htmlFor="days" className="block text-sm font-medium text-stone-700">
-            Days
+            {t("Days")}
           </label>
           <input
             id="days"
             name="days"
             type="text"
-            placeholder="Sat & Sun"
+            placeholder={t("Mon–Thu")}
             required
             className="mt-1 w-full rounded-xl border border-stone-300 px-3 py-2 text-sm"
           />
         </div>
         <div>
           <label htmlFor="time" className="block text-sm font-medium text-stone-700">
-            Time
+            {t("Time")}
           </label>
           <input
             id="time"
             name="time"
             type="text"
-            placeholder="10:00 AM – 12:00 PM"
+            placeholder="5:30–7:30 PM"
+            dir="ltr"
             required
             className="mt-1 w-full rounded-xl border border-stone-300 px-3 py-2 text-sm"
           />
@@ -74,7 +77,7 @@ export default function NewProgramForm() {
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label htmlFor="location" className="block text-sm font-medium text-stone-700">
-            Location
+            {t("Location")}
           </label>
           <input
             id="location"
@@ -86,7 +89,7 @@ export default function NewProgramForm() {
         </div>
         <div>
           <label htmlFor="price" className="block text-sm font-medium text-stone-700">
-            Price for all days ($/month)
+            {t("Price for all days ($/month)")}
           </label>
           <input
             id="price"
@@ -109,7 +112,7 @@ export default function NewProgramForm() {
         disabled={pending}
         className="min-h-11 w-full rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:opacity-60"
       >
-        {pending ? "Adding…" : "Add Program"}
+        {pending ? t("Adding…") : t("Add program")}
       </button>
     </fetcher.Form>
   );

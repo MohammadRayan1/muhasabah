@@ -4,8 +4,9 @@ import { prisma } from "@/lib/prisma.server";
 import { createSessionRedirect } from "@/lib/auth/session.server";
 import { hashPassword } from "@/lib/auth/password.server";
 import FormError from "@/components/FormError";
+import { metaTitle, useT } from "@/lib/useT";
 
-export const meta: Route.MetaFunction = () => [{ title: "Set up your account · Muhasabah" }];
+export const meta: Route.MetaFunction = ({ matches }) => [{ title: metaTitle(matches, "Set up your account") }];
 
 export async function loader({ params }: Route.LoaderArgs) {
   const invite = await prisma.invite.findUnique({
@@ -51,16 +52,16 @@ const inputClass =
   "mt-1 h-11 w-full rounded-xl border border-stone-300 bg-white px-3 text-sm text-stone-900 outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/15";
 
 export default function InvitePage({ loaderData, actionData }: Route.ComponentProps) {
+  const t = useT();
   const pending = useNavigation().state !== "idle";
   const { invite } = loaderData;
 
   if (!invite) {
     return (
       <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center px-4 text-center">
-        <h1 className="text-xl font-semibold text-stone-900">Invite not valid</h1>
+        <h1 className="text-xl font-semibold text-stone-900">{t("Invite not valid")}</h1>
         <p className="mt-2 text-sm text-stone-500">
-          This invite link is invalid, expired, or has already been used. Ask your teacher to send
-          a new one.
+          {t("This invite link is invalid, expired, or has already been used. Ask your teacher to send a new one.")}
         </p>
       </main>
     );
@@ -69,11 +70,11 @@ export default function InvitePage({ loaderData, actionData }: Route.ComponentPr
   return (
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center px-4">
       <p className="mb-1 text-sm font-medium text-emerald-700">
-        Muhasabah <span lang="ar" dir="rtl">محاسبة</span>
+        Muhasabah <span lang="ar">محاسبة</span>
       </p>
-      <h1 className="text-2xl font-semibold text-stone-900">Set up your account</h1>
+      <h1 className="text-2xl font-semibold text-stone-900">{t("Set up your account")}</h1>
       <p className="mt-1 mb-6 text-sm text-stone-500">
-        Creating an account for {invite.studentName} — {invite.email}
+        {t("Creating an account for {name}", { name: invite.studentName })} — {invite.email}
       </p>
 
       <Form method="post" className="space-y-4">
@@ -81,14 +82,14 @@ export default function InvitePage({ loaderData, actionData }: Route.ComponentPr
 
         <div>
           <label htmlFor="password" className="block text-sm font-medium text-stone-700">
-            Password
+            {t("Password")}
           </label>
           <input id="password" name="password" type="password" minLength={8} required className={inputClass} />
         </div>
 
         <div>
           <label htmlFor="confirmPassword" className="block text-sm font-medium text-stone-700">
-            Confirm password
+            {t("Confirm password")}
           </label>
           <input
             id="confirmPassword"
@@ -105,7 +106,7 @@ export default function InvitePage({ loaderData, actionData }: Route.ComponentPr
           disabled={pending}
           className="min-h-11 w-full rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:opacity-60"
         >
-          {pending ? "Creating account…" : "Create account"}
+          {pending ? t("Creating account…") : t("Create account")}
         </button>
       </Form>
     </main>

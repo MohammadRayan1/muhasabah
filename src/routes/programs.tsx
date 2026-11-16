@@ -7,8 +7,9 @@ import { formatCurrency } from "@/lib/format";
 import NewProgramForm from "@/components/NewProgramForm";
 import ProgramDaysForm from "@/components/ProgramDaysForm";
 import { dayChoices, daysLabel, priceForDays } from "@/lib/pricing";
+import { metaTitle, useT } from "@/lib/useT";
 
-export const meta: Route.MetaFunction = () => [{ title: "Programs · Muhasabah" }];
+export const meta: Route.MetaFunction = ({ matches }) => [{ title: metaTitle(matches, "Programs") }];
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireTeacher(request);
@@ -36,16 +37,16 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 export default function ProgramsPage({ loaderData }: Route.ComponentProps) {
+  const t = useT();
   const { programs } = loaderData;
 
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="mb-6 text-2xl font-bold text-stone-900">Programs</h1>
+      <h1 className="mb-6 text-2xl font-bold text-stone-900">{t("Programs")}</h1>
 
       {programs.length === 0 ? (
         <p className="mb-8 text-sm text-stone-500">
-          No programs yet. Add one below, e.g. &quot;Weekday Program&quot;, Mon–Fri, 5:00–7:00 PM,
-          $150/month, where parents can choose 2, 4 or all 5 days.
+          {t("No programs yet. Add one below, e.g. “Weekday Program”, Mon–Fri, 5:00–7:00 PM, $150/month, where people can choose 2, 4 or all 5 days.")}
         </p>
       ) : (
         <div className="mb-8 space-y-3">
@@ -62,9 +63,8 @@ export default function ProgramsPage({ loaderData }: Route.ComponentProps) {
                   </p>
                   <p className="mt-1 text-sm text-stone-500">
                     {dayChoices(program)
-                      .map((d) => `${daysLabel(d)}: ${formatCurrency(priceForDays(program, d))}`)
-                      .join(" · ")}{" "}
-                    / month
+                      .map((d) => `${t(daysLabel(d))}: ${t("{amount}/month", { amount: formatCurrency(priceForDays(program, d)) })}`)
+                      .join(" · ")}
                   </p>
                 </div>
                 <Form method="post">
@@ -72,12 +72,12 @@ export default function ProgramsPage({ loaderData }: Route.ComponentProps) {
                   <input type="hidden" name="programId" value={program.id} />
                   <input type="hidden" name="active" value="false" />
                   <button type="submit" className="text-xs text-stone-500 hover:text-red-700 hover:underline">
-                    Remove
+                    {t("Remove")}
                   </button>
                 </Form>
               </div>
               <details>
-                <summary className="cursor-pointer text-sm font-semibold text-emerald-700">Price and days</summary>
+                <summary className="cursor-pointer text-sm font-semibold text-emerald-700">{t("Price and days")}</summary>
                 <div className="mt-3">
                   <ProgramDaysForm program={program} />
                 </div>
@@ -87,7 +87,7 @@ export default function ProgramsPage({ loaderData }: Route.ComponentProps) {
         </div>
       )}
 
-      <h2 className="mb-3 text-lg font-medium text-stone-900">Add Program</h2>
+      <h2 className="mb-3 text-lg font-medium text-stone-900">{t("Add a program")}</h2>
 
       <NewProgramForm />
     </div>

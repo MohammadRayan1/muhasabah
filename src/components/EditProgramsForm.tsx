@@ -4,6 +4,7 @@ import type { ActionState } from "@/lib/action-state";
 import { formatCurrency } from "@/lib/format";
 import FormError from "@/components/FormError";
 import type { Program } from "@/generated/prisma/client";
+import { useT } from "@/lib/useT";
 
 export default function EditProgramsForm({
   studentId,
@@ -16,6 +17,7 @@ export default function EditProgramsForm({
   programs: Program[];
   enrolledProgramIds: string[];
 }) {
+  const t = useT();
   const fetcher = useFetcher<ActionState>();
   const pending = fetcher.state !== "idle";
   const [selected, setSelected] = useState<Set<string>>(new Set(enrolledProgramIds));
@@ -35,7 +37,7 @@ export default function EditProgramsForm({
   }
 
   if (programs.length === 0) {
-    return <p className="text-sm text-stone-500">No active programs to enroll in yet.</p>;
+    return <p className="text-sm text-stone-500">{t("No active programs to enroll in yet.")}</p>;
   }
 
   return (
@@ -62,7 +64,7 @@ export default function EditProgramsForm({
               <span className="font-medium text-stone-900">{program.name}</span>
               <span className="block text-xs text-stone-500">
                 {program.days} · {program.time} · {program.location} ·{" "}
-                {formatCurrency(program.price)}/mo
+                {t("{amount}/month", { amount: formatCurrency(program.price) })}
               </span>
             </span>
           </label>
@@ -72,7 +74,7 @@ export default function EditProgramsForm({
       <div className="flex items-end gap-2">
         <div className="flex-1">
           <label htmlFor="tuitionAmount" className="block text-sm font-medium text-stone-700">
-            Tuition amount ($/month)
+            {t("Tuition amount ($/month)")}
           </label>
           <input
             id="tuitionAmount"
@@ -91,12 +93,11 @@ export default function EditProgramsForm({
           disabled={pending}
           className="min-h-11 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:opacity-60"
         >
-          {pending ? "Saving…" : "Save"}
+          {pending ? t("Saving…") : t("Save")}
         </button>
       </div>
       <p className="text-xs text-stone-500">
-        Checking or unchecking a program adjusts the amount above by that program&apos;s price —
-        the next due date doesn&apos;t change.
+        {t("Checking or unchecking a program adjusts the amount above by that program's price. The next due date doesn't change.")}
       </p>
     </fetcher.Form>
   );

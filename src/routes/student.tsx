@@ -20,6 +20,8 @@ import { formatCurrency, formatDate } from "@/lib/format";
 import SendInviteForm from "@/components/SendInviteForm";
 import EditProgramsForm from "@/components/EditProgramsForm";
 import Avatar from "@/components/Avatar";
+import { useT } from "@/lib/useT";
+import { daysLabel } from "@/lib/pricing";
 
 export const meta: Route.MetaFunction = ({ data }) => [
   { title: `${data?.student.name ?? "Student"} · Muhasabah` },
@@ -73,6 +75,7 @@ export async function action({ request, params }: Route.ActionArgs) {
 }
 
 export default function StudentProfilePage({ loaderData }: Route.ComponentProps) {
+  const t = useT();
   const { student, activePrograms, families, pendingInvite, inviteUrl, canEmail } = loaderData;
   const siblings = student.family?.students.filter((s) => s.id !== student.id) ?? [];
   const { status } = getPaymentStatus(student.nextDueDate);
@@ -86,7 +89,7 @@ export default function StudentProfilePage({ loaderData }: Route.ComponentProps)
           <div>
             <h1 className="text-2xl font-bold text-stone-900">{student.name}</h1>
             <p className="text-sm text-stone-500">
-              {[student.phone, student.email].filter(Boolean).join(" · ") || "No contact info"}
+              {[student.phone, student.email].filter(Boolean).join(" · ") || t("No contact info")}
             </p>
           </div>
         </div>
@@ -94,7 +97,7 @@ export default function StudentProfilePage({ loaderData }: Route.ComponentProps)
           <span
             className={`rounded-full border px-2 py-0.5 text-xs font-medium ${STATUS_BADGE_STYLES[status]}`}
           >
-            {STATUS_LABEL[status]}
+            {t(STATUS_LABEL[status])}
           </span>
           {status !== "ok" ? <RemindMenu student={student} canEmail={canEmail} /> : null}
         </div>
@@ -103,47 +106,47 @@ export default function StudentProfilePage({ loaderData }: Route.ComponentProps)
       <div className="mb-8 grid grid-cols-3 gap-4">
         <div className="rounded-2xl border border-stone-200 bg-white shadow-sm shadow-stone-900/5 p-4">
           <p className="text-lg font-semibold text-stone-900">{formatCurrency(student.tuitionAmount)}</p>
-          <p className="text-sm text-stone-500">Tuition / month</p>
+          <p className="text-sm text-stone-500">{t("Tuition / month")}</p>
           {student.priceNote ? (
             <p className="mt-1 text-xs text-amber-700">{student.priceNote}</p>
           ) : null}
         </div>
         <div className="rounded-2xl border border-stone-200 bg-white shadow-sm shadow-stone-900/5 p-4">
           <p className="text-lg font-semibold text-stone-900">{formatDate(student.nextDueDate)}</p>
-          <p className="text-sm text-stone-500">Next due</p>
+          <p className="text-sm text-stone-500">{t("Next due")}</p>
           {student.firstPaymentAmount != null ? (
             <p className="mt-1 text-xs text-amber-700">
-              First bill: {formatCurrency(student.firstPaymentAmount)} (includes leftover days)
+              {t("First bill: {amount} (includes leftover days)", { amount: formatCurrency(student.firstPaymentAmount) })}
             </p>
           ) : null}
         </div>
         <div className="rounded-2xl border border-stone-200 bg-white shadow-sm shadow-stone-900/5 p-4">
           <p className="text-lg font-semibold text-stone-900">{formatCurrency(totalPaid)}</p>
-          <p className="text-sm text-stone-500">Total paid</p>
+          <p className="text-sm text-stone-500">{t("Total paid")}</p>
         </div>
       </div>
 
       <div className="mb-8">
-        <h2 className="mb-3 text-lg font-medium text-stone-900">Family</h2>
+        <h2 className="mb-3 text-lg font-medium text-stone-900">{t("Family")}</h2>
         {student.family ? (
           <p className="mb-3 text-sm text-stone-600">
-            In the{" "}
+            {t("In the family:")}{" "}
             <Link to={`/families/${student.family.id}`} className="font-semibold text-emerald-700 hover:underline">
               {student.family.name}
             </Link>
-            {siblings.length > 0 ? ` with ${siblings.map((s) => s.name).join(", ")}` : ""}.
+            {siblings.length > 0 ? ` · ${t("with {names}", { names: siblings.map((s) => s.name).join(", ") })}` : ""}
           </p>
         ) : (
-          <p className="mb-3 text-sm text-stone-500">Not in a family. Add siblings to one so their parent sees them together.</p>
+          <p className="mb-3 text-sm text-stone-500">{t("Not in a family. Add siblings to one so their parent sees them together.")}</p>
         )}
         <Form method="post" className="flex flex-wrap items-end gap-2">
           <input type="hidden" name="intent" value="setFamily" />
           <div className="min-w-48 flex-1">
             <label htmlFor="familyId" className="sr-only">
-              Family
+              {t("Family")}
             </label>
             <select id="familyId" name="familyId" defaultValue={student.familyId ?? ""} key={student.familyId ?? "none"} className={input}>
-              <option value="">No family</option>
+              <option value="">{t("No family")}</option>
               {families.map((f) => (
                 <option key={f.id} value={f.id}>
                   {f.name}
@@ -152,16 +155,16 @@ export default function StudentProfilePage({ loaderData }: Route.ComponentProps)
             </select>
           </div>
           <button type="submit" className={secondaryButton}>
-            Save
+            {t("Save")}
           </button>
           <Link to="/families" className="min-h-11 px-2 py-3 text-sm text-stone-500 hover:underline">
-            New family…
+            {t("New family…")}
           </Link>
         </Form>
       </div>
 
       <div className="mb-8">
-        <h2 className="mb-3 text-lg font-medium text-stone-900">Quran progress</h2>
+        <h2 className="mb-3 text-lg font-medium text-stone-900">{t("Quran progress")}</h2>
         <ProgressSummary entries={student.progress} />
         <ProgressForm lastSurah={student.progress[0]?.surah} />
         <div className="mt-4">
@@ -170,7 +173,15 @@ export default function StudentProfilePage({ loaderData }: Route.ComponentProps)
       </div>
 
       <div className="mb-8">
-        <h2 className="mb-3 text-lg font-medium text-stone-900">Programs</h2>
+        <h2 className="mb-3 text-lg font-medium text-stone-900">{t("Programs")}</h2>
+        {student.enrollments.some((e) => e.daysPerWeek) ? (
+          <p className="mb-3 text-sm text-stone-600">
+            {student.enrollments
+              .filter((e) => e.daysPerWeek)
+              .map((e) => `${e.program.name}: ${t(daysLabel(e.daysPerWeek!))}`)
+              .join(" · ")}
+          </p>
+        ) : null}
         <EditProgramsForm
           key={student.updatedAt.toISOString()}
           studentId={student.id}
@@ -181,18 +192,17 @@ export default function StudentProfilePage({ loaderData }: Route.ComponentProps)
       </div>
 
       <div className="mb-8">
-        <h2 className="mb-3 text-lg font-medium text-stone-900">Portal Access</h2>
+        <h2 className="mb-3 text-lg font-medium text-stone-900">{t("Portal access")}</h2>
         {student.user ? (
           <div className="rounded-2xl border border-stone-200 bg-white shadow-sm shadow-stone-900/5 p-3">
             <p className="text-sm text-stone-700">
-              Account active — <span className="font-medium">{student.user.email}</span>
+              {t("Account active")} — <span className="font-medium">{student.user.email}</span>
             </p>
           </div>
         ) : pendingInvite ? (
           <div className="rounded-2xl border border-stone-200 bg-white shadow-sm shadow-stone-900/5 p-3">
             <p className="text-sm text-stone-700">
-              Invite sent to <span className="font-medium">{pendingInvite.email}</span>, not yet
-              accepted.
+              {t("Invite sent to {email}, not yet accepted.", { email: pendingInvite.email })}
             </p>
             <p className="mt-1 break-all text-xs text-stone-500">
               {inviteUrl}
@@ -207,29 +217,29 @@ export default function StudentProfilePage({ loaderData }: Route.ComponentProps)
         <p className="mb-8 rounded-xl bg-stone-50 p-3 text-sm text-stone-600">{student.notes}</p>
       ) : null}
 
-      <h2 className="mb-3 text-lg font-medium text-stone-900">Payment History</h2>
+      <h2 className="mb-3 text-lg font-medium text-stone-900">{t("Payment history")}</h2>
 
       {student.payments.length === 0 ? (
-        <p className="text-sm text-stone-500">No payments recorded yet.</p>
+        <p className="text-sm text-stone-500">{t("No payments recorded yet.")}</p>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-stone-200 bg-white shadow-sm shadow-stone-900/5">
           <table className="w-full text-sm">
-            <thead className="bg-stone-50 text-left text-stone-500">
+            <thead className="bg-stone-50 text-start text-stone-500">
               <tr>
-                <th className="px-4 py-2 font-medium">Date</th>
-                <th className="px-4 py-2 text-right font-medium">Amount</th>
-                <th className="px-4 py-2 text-right font-medium">Receipt</th>
+                <th className="px-4 py-2 font-medium">{t("Date")}</th>
+                <th className="px-4 py-2 text-end font-medium">{t("Amount")}</th>
+                <th className="px-4 py-2 text-end font-medium">{t("Receipt")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-200">
               {student.payments.map((payment) => (
                 <tr key={payment.id}>
                   <td className="px-4 py-3 text-stone-900">{formatDate(payment.paidAt)}</td>
-                  <td className="px-4 py-3 text-right text-stone-700">
+                  <td className="px-4 py-3 text-end text-stone-700">
                     {formatCurrency(payment.amount)}
-                    {payment.method === "card" ? <span className="ml-1 text-xs text-stone-500">(online)</span> : null}
+                    {payment.method === "card" ? <span className="ms-1 text-xs text-stone-500">{t("(online)")}</span> : null}
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3 text-end">
                     <Link to={`/receipts/${payment.id}`} className="text-emerald-700 hover:underline">
                       {receiptCode(payment.receiptNumber)}
                     </Link>

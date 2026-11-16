@@ -10,8 +10,9 @@ import { OVERDUE_DAYS, reminderContact, UPCOMING_DAYS } from "@/lib/reminders";
 import { formatCurrency, formatDate } from "@/lib/format";
 import RemindMenu from "@/components/RemindMenu";
 import { card, pageTitle, sectionTitle } from "@/components/ui";
+import { metaTitle, useT } from "@/lib/useT";
 
-export const meta: Route.MetaFunction = () => [{ title: "Reminders · Muhasabah" }];
+export const meta: Route.MetaFunction = ({ matches }) => [{ title: metaTitle(matches, "Reminders") }];
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireTeacher(request);
@@ -52,6 +53,7 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 export default function RemindersPage({ loaderData }: Route.ComponentProps) {
+  const t = useT();
   const { students, autoEmail, canEmail, recent } = loaderData;
   const needing = students
     .map((s) => ({ ...s, ...getPaymentStatus(s.nextDueDate) }))
@@ -59,19 +61,18 @@ export default function RemindersPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <h1 className={pageTitle}>Reminders</h1>
+      <h1 className={pageTitle}>{t("Reminders")}</h1>
       <p className="mt-1 mb-8 max-w-prose text-sm text-stone-500">
-        A kind nudge for anyone who&apos;s due this week or late. WhatsApp and text open on your own
-        phone with the message written for you.
+        {t("A kind nudge for anyone who's due this week or late. WhatsApp and text open on your own phone with the message written for you.")}
       </p>
 
       <section className="mb-10">
         <h2 className={sectionTitle}>
-          Who to remind <span className="font-semibold text-stone-500 tabular-nums">{needing.length}</span>
+          {t("Who to remind")} <span className="font-semibold text-stone-500 tabular-nums">{needing.length}</span>
         </h2>
         {needing.length === 0 ? (
           <p className={`${card} flex items-center gap-2 text-sm text-stone-600`}>
-            <CheckCircle2 className="h-5 w-5 text-emerald-600" /> Alhamdulillah, nobody is due this week.
+            <CheckCircle2 className="h-5 w-5 text-emerald-600" /> {t("Alhamdulillah, nobody is due this week.")}
           </p>
         ) : (
           <ul className="divide-y divide-stone-200 rounded-2xl border border-stone-200 bg-white shadow-sm shadow-stone-900/5">
@@ -86,12 +87,14 @@ export default function RemindersPage({ loaderData }: Route.ComponentProps) {
                     <p className={`text-sm ${s.status === "overdue" ? "text-red-700" : "text-amber-700"}`}>
                       {formatCurrency(amountDue(s))} ·{" "}
                       {s.status === "overdue"
-                        ? `${Math.abs(s.daysUntilDue)} day${Math.abs(s.daysUntilDue) === 1 ? "" : "s"} late`
-                        : `due ${formatDate(s.nextDueDate)}`}
+                        ? Math.abs(s.daysUntilDue) === 1
+                          ? t("1 day late")
+                          : t("{n} days late", { n: Math.abs(s.daysUntilDue) })
+                        : t("due {date}", { date: formatDate(s.nextDueDate) })}
                     </p>
                     <p className="truncate text-xs text-stone-500">
                       {[s.family?.name, contact.phone, contact.email].filter(Boolean).join(" · ") ||
-                        "No phone or email saved"}
+                        t("No phone or email saved")}
                     </p>
                   </div>
                   <RemindMenu student={s} canEmail={canEmail} />
@@ -103,17 +106,15 @@ export default function RemindersPage({ loaderData }: Route.ComponentProps) {
       </section>
 
       <section className="mb-10">
-        <h2 className={sectionTitle}>Automatic email reminders</h2>
+        <h2 className={sectionTitle}>{t("Automatic email reminders")}</h2>
         <div className={`${card} space-y-3`}>
           <p className="text-sm text-stone-600">
-            When this is on, each family gets one email {UPCOMING_DAYS} days before the 1st, and one
-            more {OVERDUE_DAYS} days after if it&apos;s still unpaid. It never sends the same reminder twice.
+            {t("When this is on, each family gets one email {before} days before the 1st, and one more {after} days after if it's still unpaid. It never sends the same reminder twice.", { before: UPCOMING_DAYS, after: OVERDUE_DAYS })}
           </p>
           {!canEmail ? (
             <p className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
               <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" />
-              Email isn&apos;t set up yet. Add a RESEND_API_KEY (and EMAIL_FROM from your own domain) in
-              Netlify, and these will start going out.
+              {t("Email isn't set up yet. Add a RESEND_API_KEY (and EMAIL_FROM from your own domain) in Netlify, and these will start going out.")}
             </p>
           ) : null}
           <Form method="post" className="flex items-center gap-3">
@@ -123,26 +124,26 @@ export default function RemindersPage({ loaderData }: Route.ComponentProps) {
               type="submit"
               role="switch"
               aria-checked={autoEmail}
-              aria-label="Automatic email reminders"
+              aria-label={t("Automatic email reminders")}
               className={`relative h-7 w-12 rounded-full transition-colors ${autoEmail ? "bg-emerald-600" : "bg-stone-300"}`}
             >
               <span
-                className={`absolute top-1 left-1 h-5 w-5 rounded-full bg-white shadow transition-transform ${autoEmail ? "translate-x-5" : ""}`}
+                className={`absolute top-1 start-1 h-5 w-5 rounded-full bg-white shadow transition-transform ${autoEmail ? "translate-x-5 rtl:-translate-x-5" : ""}`}
               />
             </button>
-            <span className="text-sm font-semibold text-stone-900">{autoEmail ? "On" : "Off"}</span>
+            <span className="text-sm font-semibold text-stone-900">{autoEmail ? t("On") : t("Off")}</span>
           </Form>
         </div>
       </section>
 
       {recent.length > 0 ? (
         <section>
-          <h2 className={sectionTitle}>Recently sent</h2>
+          <h2 className={sectionTitle}>{t("Recently sent")}</h2>
           <ul className="space-y-1 text-sm text-stone-600">
             {recent.map((r) => (
               <li key={r.id}>
                 {formatDate(r.sentAt)} · {r.student.name} ·{" "}
-                {r.kind === "manual" ? "sent by you" : r.kind === "overdue" ? "late reminder" : "upcoming reminder"} ·{" "}
+                {t(r.kind === "manual" ? "sent by you" : r.kind === "overdue" ? "late reminder" : "upcoming reminder")} ·{" "}
                 {r.sentTo}
               </li>
             ))}

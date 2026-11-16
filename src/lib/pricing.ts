@@ -19,3 +19,7 @@ export function priceForDays(program: ProgramDays, days: number): number {
 export function daysLabel(days: number) {
   return `${days} day${days === 1 ? "" : "s"} a week`;
 }
+
+export function daysCount(days: number) {
+  return `${days} day${days === 1 ? "" : "s"}`;
+}

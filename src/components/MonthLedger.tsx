@@ -1,6 +1,7 @@
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, formatMonth } from "@/lib/format";
 import GeometricPattern from "@/components/GeometricPattern";
 import type { MonthlyRevenue } from "@/lib/reports.server";
+import { useT } from "@/lib/useT";
 
 /**
  * The dashboard's lead panel: this month's collected-vs-expected as one sentence and
@@ -13,6 +14,7 @@ export default function MonthLedger({
   month: MonthlyRevenue;
   counts: { overdue: number; dueSoon: number; ok: number };
 }) {
+  const t = useT();
   const share = month.expected > 0 ? Math.min(1, month.collected / month.expected) : 0;
 
   const states = [
@@ -30,18 +32,18 @@ export default function MonthLedger({
 
       <div className="relative">
         <h2 id="ledger-title" className="text-sm font-semibold text-sidebar-muted">
-          {month.label}
+          {formatMonth(month.slug)}
         </h2>
         <p className="mt-2 text-2xl font-bold leading-snug tabular-nums sm:text-3xl">
-          {formatCurrency(month.collected)} collected{" "}
+          {t("{amount} collected", { amount: formatCurrency(month.collected) })}{" "}
           <span className="font-semibold text-sidebar-muted">
-            of {formatCurrency(month.expected)} expected
+            {t("of {amount} expected", { amount: formatCurrency(month.expected) })}
           </span>
         </p>
 
         <div
           role="progressbar"
-          aria-label={`Collected this month`}
+          aria-label={t("Collected this month")}
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={Math.round(share * 100)}
@@ -55,12 +57,12 @@ export default function MonthLedger({
             <div key={s.label}>
               <dt className="flex items-center gap-2 text-sm text-sidebar-muted">
                 <span aria-hidden className={`h-2 w-2 rounded-full ${s.dot}`} />
-                {s.label}
+                {t(s.label)}
               </dt>
               <dd className="mt-1 text-xl font-bold tabular-nums">
                 {s.count}{" "}
                 <span className="text-sm font-medium text-sidebar-muted">
-                  {s.count === 1 ? "student" : "students"}
+                  {s.count === 1 ? t("student") : t("students")}
                 </span>
               </dd>
             </div>

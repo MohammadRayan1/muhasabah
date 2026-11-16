@@ -113,7 +113,11 @@ export async function submitSignup(token: string, formData: FormData): Promise<S
   const email = str(formData, "email").toLowerCase();
   const password = String(formData.get("password") ?? "");
   const confirmPassword = String(formData.get("confirmPassword") ?? "");
-  const names = formData.getAll("childName").map((n) => String(n).trim());
+  // "self": the person signing up is the student (one place, their own name).
+  // "children": a parent adding one or more children.
+  const signupType = str(formData, "signupType") === "self" ? "self" : "children";
+  const names =
+    signupType === "self" ? [guardianName] : formData.getAll("childName").map((n) => String(n).trim());
   const programPicks = formData.getAll("childProgram").map(String);
   const dayPicks = formData.getAll("childDays").map(Number);
   const startStr = str(formData, "joinedAt");
@@ -147,7 +151,8 @@ export async function submitSignup(token: string, formData: FormData): Promise<S
 
   const joinedAt = parseDateOnly(startStr);
   const passwordHash = await hashPassword(password);
-  const familyName = link.label || `${guardianName.split(/\s+/).at(-1)} family`;
+  const familyName =
+    signupType === "self" ? guardianName : link.label || `${guardianName.split(/\s+/).at(-1)} family`;
 
   try {
     const userId = await prisma.$transaction(async (tx) => {
@@ -159,7 +164,12 @@ export async function submitSignup(token: string, formData: FormData): Promise<S
       if (claimed.count === 0) throw new Error("LINK_USED");
 
       const family = await tx.family.create({
-        data: { name: familyName, guardianName, phone: phone || null, email },
+        data: {
+          name: familyName,
+          guardianName: signupType === "self" ? null : guardianName,
+          phone: phone || null,
+          email,
+        },
       });
 
       const studentIds: string[] = [];

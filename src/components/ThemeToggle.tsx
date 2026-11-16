@@ -1,5 +1,6 @@
 import { Moon, Sun } from "lucide-react";
 import { THEME_STORAGE_KEY } from "@/lib/theme";
+import { useT } from "@/lib/useT";
 
 /**
  * Light/dark switch. The current theme lives on <html class="dark">, set before
@@ -7,6 +8,7 @@ import { THEME_STORAGE_KEY } from "@/lib/theme";
  * state: both icons render and CSS shows the right one.
  */
 export default function ThemeToggle() {
+  const t = useT();
   function toggle() {
     const isDark = document.documentElement.classList.toggle("dark");
     try {
@@ -20,9 +22,9 @@ export default function ThemeToggle() {
     <button
       type="button"
       onClick={toggle}
-      aria-label="Toggle dark mode"
-      title="Toggle dark mode"
-      className="fixed right-4 top-4 z-50 print:hidden flex h-10 w-10 items-center justify-center rounded-full border border-stone-200 bg-white text-stone-700 shadow-sm transition-colors hover:bg-stone-50"
+      aria-label={t("Toggle dark mode")}
+      title={t("Toggle dark mode")}
+      className="fixed end-4 top-4 z-50 print:hidden flex h-10 w-10 items-center justify-center rounded-full border border-stone-200 bg-white text-stone-700 shadow-sm transition-colors hover:bg-stone-50"
     >
       <Moon className="h-5 w-5 dark:hidden" strokeWidth={2} />
       <Sun className="hidden h-5 w-5 dark:block" strokeWidth={2} />

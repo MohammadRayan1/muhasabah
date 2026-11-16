@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { formatCurrency } from "@/lib/format";
-import { priceForDays } from "@/lib/pricing";
+import { daysCount, priceForDays } from "@/lib/pricing";
 import { label } from "@/components/ui";
+import { useT } from "@/lib/useT";
 
 /**
  * "Meets N days a week" plus which smaller day counts parents may pick, each with
@@ -18,6 +19,7 @@ export default function DayOptionsFields({
   defaultOptions?: number[];
   idPrefix: string;
 }) {
+  const t = useT();
   const [daysPerWeek, setDaysPerWeek] = useState(defaultDaysPerWeek);
   const [options, setOptions] = useState(() => new Set(defaultOptions.filter((d) => d < defaultDaysPerWeek)));
   const program = { price, daysPerWeek, dayOptions: [] };
@@ -33,7 +35,7 @@ export default function DayOptionsFields({
     <div className="space-y-3">
       <div>
         <label htmlFor={`${idPrefix}-daysPerWeek`} className={label}>
-          Meets how many days a week?
+          {t("Meets how many days a week?")}
         </label>
         <select
           id={`${idPrefix}-daysPerWeek`}
@@ -44,14 +46,14 @@ export default function DayOptionsFields({
         >
           {[1, 2, 3, 4, 5, 6, 7].map((d) => (
             <option key={d} value={d}>
-              {d} {d === 1 ? "day" : "days"}
+              {t(daysCount(d))}
             </option>
           ))}
         </select>
       </div>
 
       <fieldset>
-        <legend className={label}>Parents can choose</legend>
+        <legend className={label}>{t("People can choose")}</legend>
         <div className="mt-1 flex flex-wrap gap-2">
           {Array.from({ length: daysPerWeek }, (_, i) => i + 1).map((d) => {
             const full = d === daysPerWeek;
@@ -72,9 +74,9 @@ export default function DayOptionsFields({
                   onChange={(e) => toggle(d, e.target.checked)}
                 />
                 <span>
-                  {d} {d === 1 ? "day" : "days"}
+                  {t(daysCount(d))}
                   {price > 0 ? (
-                    <span className="ml-1 text-stone-500 tabular-nums">{formatCurrency(priceForDays(program, d))}</span>
+                    <span className="ms-1 text-stone-500 tabular-nums">{formatCurrency(priceForDays(program, d))}</span>
                   ) : null}
                 </span>
               </label>
@@ -82,8 +84,7 @@ export default function DayOptionsFields({
           })}
         </div>
         <p className="mt-1 text-xs text-stone-500">
-          Fewer days costs less: your price × days chosen ÷ {daysPerWeek}. The full {daysPerWeek}{" "}
-          {daysPerWeek === 1 ? "day" : "days"} is always an option.
+          {t("Fewer days costs less: your price × days chosen ÷ {n}. The full schedule is always an option.", { n: daysPerWeek })}
         </p>
       </fieldset>
     </div>

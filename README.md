@@ -17,13 +17,14 @@ Small Quran and Islamic-studies classes usually run on a notebook and memory. Wh
 | | |
 |---|---|
 | **Billing on the 1st** | Everyone is billed on the 1st. Join on Nov 11 at $100/month and the first bill is $167 on Dec 1: 20 prorated days plus December. |
-| **Self sign-up with approval** | The teacher sends each family a one-time link. Parents enter their details, then pick a program and how many days a week for each child (e.g. 2, 4 or all 5 weekdays), and the price adjusts from the teacher's full price. The teacher reviews it and approves or declines. |
+| **Self sign-up with approval** | The teacher sends a one-time link. Someone signs up themselves, or a parent signs up one or more children, picking a program and how many days a week (e.g. 1–4 days of a Mon–Thu class). The price adjusts from the teacher's full price, and the teacher approves or declines. |
 | **Families** | Siblings share one parent contact and one portal, and can be marked paid in one go. |
 | **Reminders** | One tap opens WhatsApp, a text or an email with a polite message already written. Optional automatic emails go out before and after the 1st. |
 | **Receipts** | Every payment gets a numbered receipt (MUH-00001) to print, save as a PDF or email. |
 | **Quran progress** | Log sabaq, sabqi, manzil and nazra by surah and ayah, with mistakes and how it went. Parents see it too. |
 | **Online payments** | Optional Stripe Checkout from the parent portal, recorded by webhook. |
 | **Revenue** | Expected vs. collected for each month, down to each payment. |
+| **English and Arabic** | A switch next to the theme toggle flips every page into Arabic, laid out right to left, with Arabic dates and surah names. |
 | **Dark mode** | On every page, including sign-in, with Gregorian and Hijri dates. |
 
 ## Screenshots

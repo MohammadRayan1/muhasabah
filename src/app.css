@@ -73,7 +73,16 @@ p {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  /* Latin from Nunito, Arabic from Tajawal */
+  font-family: var(--font-sans), "Tajawal", Arial, Helvetica, sans-serif;
+}
+
+/* Arabic reads better a touch larger and with more line height. */
+html[lang="ar"] body {
+  line-height: 1.65;
+}
+[dir="rtl"] .ledger-fill {
+  transform-origin: right;
 }
 
 /* ---------- Dark mode ----------

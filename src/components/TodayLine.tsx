@@ -1,11 +1,16 @@
 import { useSyncExternalStore } from "react";
+import { useLang } from "@/lib/useT";
 
-const gregorian = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric" });
-const hijri = new Intl.DateTimeFormat("en-u-ca-islamic-umalqura", {
-  day: "numeric",
-  month: "long",
-  year: "numeric",
-});
+const formats = {
+  en: {
+    gregorian: new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric" }),
+    hijri: new Intl.DateTimeFormat("en-u-ca-islamic-umalqura", { day: "numeric", month: "long", year: "numeric" }),
+  },
+  ar: {
+    gregorian: new Intl.DateTimeFormat("ar-u-nu-latn", { weekday: "long", month: "long", day: "numeric" }),
+    hijri: new Intl.DateTimeFormat("ar-u-ca-islamic-umalqura-nu-latn", { day: "numeric", month: "long", year: "numeric" }),
+  },
+};
 
 const noop = () => () => {};
 
@@ -15,6 +20,7 @@ const noop = () => () => {};
  * day for an evening visit.
  */
 export default function TodayLine() {
+  const { gregorian, hijri } = formats[useLang()];
   const text = useSyncExternalStore(
     noop,
     () => {
