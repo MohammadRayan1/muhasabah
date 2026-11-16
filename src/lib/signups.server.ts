@@ -4,6 +4,7 @@ import { hashPassword } from "@/lib/auth/password.server";
 import { BILLING_DAY, calculateFirstBill, parseDateOnly } from "@/lib/dates";
 import type { ActionState } from "@/lib/action-state";
 import { MAX_CHILDREN } from "@/lib/signups";
+import { dayChoices, priceForDays } from "@/lib/pricing";
 
 const LINK_DAYS = 30;
 export { MAX_CHILDREN };
@@ -12,12 +13,15 @@ function str(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
 }
 
-/** A link is usable if it exists, hasn't been used, and hasn't expired. */
+/**
+ * A link is usable if it exists, hasn't been used, and hasn't expired. Parents can
+ * pick from every active program (older links may be limited to the ones they named).
+ */
 export async function findOpenLink(token: string) {
   const link = await prisma.signupLink.findUnique({ where: { token } });
   if (!link || link.usedAt || link.expiresAt < new Date()) return null;
   const programs = await prisma.program.findMany({
-    where: { id: { in: link.programIds }, active: true },
+    where: { active: true, ...(link.programIds.length > 0 ? { id: { in: link.programIds } } : {}) },
     orderBy: { createdAt: "asc" },
   });
   return { link, programs };
@@ -27,18 +31,15 @@ export async function findOpenLink(token: string) {
 
 export async function createSignupLink(formData: FormData): Promise<ActionState> {
   const label = str(formData, "label");
-  const programIds = formData.getAll("programIds").map(String).filter(Boolean);
-  const price = Number(formData.get("price"));
-
-  if (programIds.length === 0) return { error: "Pick at least one program" };
-  if (!Number.isFinite(price) || price <= 0) return { error: "Price must be a positive number" };
+  if ((await prisma.program.count({ where: { active: true } })) === 0) {
+    return { error: "Add a program first, so parents have something to pick" };
+  }
 
   await prisma.signupLink.create({
     data: {
       token: randomBytes(9).toString("base64url"),
       label: label || null,
-      programIds,
-      price,
+      programIds: [],
       expiresAt: new Date(Date.now() + LINK_DAYS * 24 * 60 * 60 * 1000),
     },
   });
@@ -112,7 +113,9 @@ export async function submitSignup(token: string, formData: FormData): Promise<S
   const email = str(formData, "email").toLowerCase();
   const password = String(formData.get("password") ?? "");
   const confirmPassword = String(formData.get("confirmPassword") ?? "");
-  const children = formData.getAll("childName").map((n) => String(n).trim()).filter(Boolean);
+  const names = formData.getAll("childName").map((n) => String(n).trim());
+  const programPicks = formData.getAll("childProgram").map(String);
+  const dayPicks = formData.getAll("childDays").map(Number);
   const startStr = str(formData, "joinedAt");
 
   if (!guardianName) return { error: "Please enter your name" };
@@ -121,17 +124,28 @@ export async function submitSignup(token: string, formData: FormData): Promise<S
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "That email doesn't look right" };
   if (password.length < 8) return { error: "Password must be at least 8 characters" };
   if (password !== confirmPassword) return { error: "Passwords don't match" };
-  if (children.length === 0) return { error: "Add at least one child" };
-  if (children.length > MAX_CHILDREN) return { error: `You can add up to ${MAX_CHILDREN} children` };
+  if (programs.length === 0) return { error: "There are no programs to join right now. Ask your teacher." };
+  if (names.filter(Boolean).length === 0) return { error: "Add at least one child" };
+  if (names.length > MAX_CHILDREN) return { error: `You can add up to ${MAX_CHILDREN} children` };
+
+  // Each child picks one program and how many days a week. The price is worked out
+  // here from the program, never taken from the form.
+  const children: { name: string; programId: string; days: number; price: number }[] = [];
+  for (const [i, name] of names.entries()) {
+    if (!name) return { error: `Enter a name for child ${i + 1}` };
+    const program = programs.find((p) => p.id === programPicks[i]);
+    if (!program) return { error: `Pick a program for ${name}` };
+    const days = dayPicks[i];
+    if (!dayChoices(program).includes(days)) return { error: `Pick how many days a week ${name} will come` };
+    children.push({ name, programId: program.id, days, price: priceForDays(program, days) });
+  }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(startStr)) return { error: "Pick a start date" };
-  if (programs.length === 0) return { error: "The program on this link is no longer offered. Ask your teacher for a new link." };
 
   if (await prisma.user.findUnique({ where: { email } })) {
     return { error: "There's already an account with this email. Sign in instead, or use a different email." };
   }
 
   const joinedAt = parseDateOnly(startStr);
-  const bill = calculateFirstBill(link.price, joinedAt);
   const passwordHash = await hashPassword(password);
   const familyName = link.label || `${guardianName.split(/\s+/).at(-1)} family`;
 
@@ -149,21 +163,28 @@ export async function submitSignup(token: string, formData: FormData): Promise<S
       });
 
       const studentIds: string[] = [];
-      for (const name of children) {
+      for (const child of children) {
+        const bill = calculateFirstBill(child.price, joinedAt);
+        const program = programs.find((p) => p.id === child.programId)!;
         const student = await tx.student.create({
           data: {
-            name,
+            name: child.name,
             familyId: family.id,
             phone: phone || null,
             email,
-            tuitionAmount: link.price,
+            tuitionAmount: child.price,
             firstPaymentAmount: bill.hasLeftover ? bill.total : null,
             billingDay: BILLING_DAY,
             nextDueDate: bill.dueDate,
             joinedAt,
             active: false,
             pendingApproval: true,
-            enrollments: { create: programs.map((p) => ({ programId: p.id })) },
+            enrollments: {
+              create: {
+                programId: child.programId,
+                daysPerWeek: child.days < program.daysPerWeek ? child.days : null,
+              },
+            },
           },
         });
         studentIds.push(student.id);

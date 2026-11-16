@@ -1,6 +1,7 @@
 import { Form, Link, redirect, useNavigation } from "react-router";
 import { CheckCircle2, CreditCard } from "lucide-react";
 import type { Route } from "./+types/portal";
+import { daysLabel } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma.server";
 import { requireUser } from "@/lib/auth/session.server";
 import { visibleStudentIds } from "@/lib/access.server";
@@ -184,7 +185,9 @@ export default function PortalPage({
                   </p>
                   <p className="mt-1 text-sm text-stone-600">
                     Starting {formatDate(student.joinedAt)} ·{" "}
-                    {student.enrollments.map((e) => e.program.name).join(", ")}
+                    {student.enrollments
+                      .map((e) => `${e.program.name}, ${daysLabel(e.daysPerWeek ?? e.program.daysPerWeek)}`)
+                      .join(" · ")}
                   </p>
                 </div>
               ) : (
@@ -252,6 +255,11 @@ export default function PortalPage({
                           <div key={enrollment.id} className={card}>
                             <p className="font-medium text-stone-900">
                               {enrollment.program.name}
+                              {enrollment.daysPerWeek ? (
+                                <span className="ml-2 text-sm font-normal text-stone-500">
+                                  {daysLabel(enrollment.daysPerWeek)}
+                                </span>
+                              ) : null}
                             </p>
                             <p className="text-sm text-stone-500">
                               {enrollment.program.days} ·{" "}

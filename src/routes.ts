@@ -21,7 +21,6 @@ export default [
     route("signups", "routes/signups.tsx"),
     route("reports", "routes/reports.tsx"),
     route("reports/:month", "routes/report-month.tsx"),
-    route("students/new", "routes/student-new.tsx"),
     route("students/:id", "routes/student.tsx"),
   ]),
 ] satisfies RouteConfig;

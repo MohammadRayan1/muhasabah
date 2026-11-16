@@ -144,6 +144,10 @@ model Program {
   time        String
   location    String
   price       Float
+  // How many days a week the full program meets, and which day counts parents
+  // can sign up for. Price is prorated: price × chosen days ÷ daysPerWeek.
+  daysPerWeek Int          @default(1)
+  dayOptions  Int[]        @default([])
   active      Boolean      @default(true)
   enrollments Enrollment[]
   createdAt   DateTime     @default(now())
@@ -153,21 +157,24 @@ model Enrollment {
   id        String   @id @default(cuid())
   studentId String
   student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  programId String
-  program   Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
+  programId   String
+  program     Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
+  // Days a week this student attends, when fewer than the full program.
+  daysPerWeek Int?
+  createdAt   DateTime @default(now())
 
   @@unique([studentId, programId])
 }
 
-// A single-use sign-up link the teacher makes for one family. The teacher sets the
-// programs and price; the parent fills in everything else.
+// A single-use sign-up link the teacher makes for one family. The parent picks each
+// child's program and days a week; the price comes from the program.
+// programIds and price are only set on older links that fixed them in advance.
 model SignupLink {
   id         String    @id @default(cuid())
   token      String    @unique
   label      String?
   programIds String[]
-  price      Float
+  price      Float?
   expiresAt  DateTime
   usedAt     DateTime?
   familyId   String?

@@ -76,12 +76,12 @@ export default function Sidebar({ pendingSignups = 0 }: { pendingSignups?: numbe
           </Link>
           <div className="flex items-center gap-1">
             <Link
-              to="/students/new"
-              aria-label="Add student"
+              to="/signups#new-link"
+              aria-label="Invite a family"
               className="flex h-10 items-center gap-1.5 rounded-full bg-emerald-600 px-3.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
             >
               <UserPlus className="h-4 w-4" strokeWidth={2.25} />
-              Add
+              Invite
             </Link>
             <Form method="post" action="/logout">
               <button
@@ -144,11 +144,11 @@ export default function Sidebar({ pendingSignups = 0 }: { pendingSignups?: numbe
           })}
 
           <Link
-            to="/students/new"
+            to="/signups#new-link"
             className="mt-4 flex min-h-11 items-center gap-3 rounded-xl bg-emerald-600 px-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
           >
             <UserPlus className="h-5 w-5 shrink-0" strokeWidth={2} />
-            Add Student
+            Invite a family
           </Link>
         </nav>
 

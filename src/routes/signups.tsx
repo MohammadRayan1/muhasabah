@@ -6,6 +6,7 @@ import { requireTeacher } from "@/lib/auth/session.server";
 import { appUrl } from "@/lib/mutations.server";
 import { approveSignup, createSignupLink, declineSignup, revokeSignupLink } from "@/lib/signups.server";
 import { calculateFirstBill } from "@/lib/dates";
+import { daysLabel } from "@/lib/pricing";
 import { formatCurrency, formatDate } from "@/lib/format";
 import type { ActionState } from "@/lib/action-state";
 import FormError from "@/components/FormError";
@@ -21,10 +22,13 @@ export async function loader({ request }: Route.LoaderArgs) {
     prisma.student.findMany({
       where: { pendingApproval: true },
       orderBy: { createdAt: "asc" },
-      include: { family: true, enrollments: { include: { program: { select: { name: true } } } } },
+      include: {
+        family: true,
+        enrollments: { include: { program: { select: { name: true, daysPerWeek: true, price: true } } } },
+      },
     }),
     prisma.signupLink.findMany({ orderBy: { createdAt: "desc" }, take: 30 }),
-    prisma.program.findMany({ where: { active: true }, orderBy: { createdAt: "asc" } }),
+    prisma.program.findMany({ where: { active: true }, orderBy: { createdAt: "asc" }, select: { id: true, name: true } }),
   ]);
 
   // Group waiting children by family (every sign-up creates one family).
@@ -78,8 +82,8 @@ export default function SignupsPage({ loaderData }: Route.ComponentProps) {
     <div className="mx-auto max-w-3xl">
       <h1 className={pageTitle}>Sign-ups</h1>
       <p className="mt-1 mb-8 max-w-prose text-sm text-stone-500">
-        Make a link for each family, choosing the program and price. They fill in their own details, and
-        their children show up here for you to approve.
+        Make a link for each family and send it. Parents fill in their details and pick a program and
+        how many days a week for each child. You review it here, then approve or decline.
       </p>
 
       <section className="mb-10">
@@ -99,9 +103,9 @@ export default function SignupsPage({ loaderData }: Route.ComponentProps) {
         )}
       </section>
 
-      <section className="mb-10">
+      <section id="new-link" className="mb-10 scroll-mt-6">
         <h2 className={sectionTitle}>Make a sign-up link</h2>
-        <NewSignupLinkForm programs={programs} />
+        <NewSignupLinkForm hasPrograms={programs.length > 0} />
       </section>
 
       {links.length > 0 ? (
@@ -118,9 +122,12 @@ export default function SignupsPage({ loaderData }: Route.ComponentProps) {
                     <p className="font-semibold text-stone-900">{link.label || "Sign-up link"}</p>
                     <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${status.style}`}>{status.text}</span>
                   </div>
-                  <p className="text-sm text-stone-500">
-                    {link.programNames.join(", ")} · {formatCurrency(link.price)}/mo per child
-                  </p>
+                  {link.programNames.length > 0 ? (
+                    <p className="text-sm text-stone-500">
+                      {link.programNames.join(", ")}
+                      {link.price ? ` · ${formatCurrency(link.price)}/mo per child` : ""}
+                    </p>
+                  ) : null}
                   {open ? (
                     <>
                       <p className="break-all text-xs text-stone-500">{link.url}</p>
@@ -165,7 +172,7 @@ type PendingProps = {
     name: string;
     tuitionAmount: number;
     joinedAt: Date;
-    enrollments: { program: { name: string } }[];
+    enrollments: { daysPerWeek: number | null; program: { name: string; daysPerWeek: number; price: number } }[];
   }[];
 };
 
@@ -192,8 +199,12 @@ function PendingFamily({ family, students }: PendingProps) {
               <div className="min-w-40 flex-1">
                 <p className="font-semibold text-stone-900">{s.name}</p>
                 <p className="text-xs text-stone-500">
-                  {s.enrollments.map((e) => e.program.name).join(", ")} · starts {formatDate(s.joinedAt)} · first bill{" "}
-                  {formatCurrency(bill.total)} due {formatDate(bill.dueDate)}
+                  {s.enrollments
+                    .map((e) => `${e.program.name}, ${daysLabel(e.daysPerWeek ?? e.program.daysPerWeek)}`)
+                    .join(" · ")}
+                </p>
+                <p className="text-xs text-stone-500">
+                  Starts {formatDate(s.joinedAt)} · first bill {formatCurrency(bill.total)} due {formatDate(bill.dueDate)}
                 </p>
               </div>
               <div className="w-32">

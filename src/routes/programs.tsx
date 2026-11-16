@@ -2,9 +2,11 @@ import { Form } from "react-router";
 import type { Route } from "./+types/programs";
 import { prisma } from "@/lib/prisma.server";
 import { requireTeacher } from "@/lib/auth/session.server";
-import { createProgram, setProgramActive } from "@/lib/mutations.server";
+import { createProgram, setProgramActive, updateProgramDays } from "@/lib/mutations.server";
 import { formatCurrency } from "@/lib/format";
 import NewProgramForm from "@/components/NewProgramForm";
+import ProgramDaysForm from "@/components/ProgramDaysForm";
+import { dayChoices, daysLabel, priceForDays } from "@/lib/pricing";
 
 export const meta: Route.MetaFunction = () => [{ title: "Programs · Muhasabah" }];
 
@@ -23,6 +25,8 @@ export async function action({ request }: Route.ActionArgs) {
   switch (formData.get("intent")) {
     case "createProgram":
       return createProgram(formData);
+    case "updateProgramDays":
+      return updateProgramDays(formData);
     case "removeProgram":
       formData.set("active", "false");
       return setProgramActive(formData);
@@ -40,31 +44,44 @@ export default function ProgramsPage({ loaderData }: Route.ComponentProps) {
 
       {programs.length === 0 ? (
         <p className="mb-8 text-sm text-stone-500">
-          No programs yet. Add one below — e.g. &quot;Weekend Program&quot;, Sat &amp; Sun, 10:00
-          AM–12:00 PM, $100/month.
+          No programs yet. Add one below, e.g. &quot;Weekday Program&quot;, Mon–Fri, 5:00–7:00 PM,
+          $150/month, where parents can choose 2, 4 or all 5 days.
         </p>
       ) : (
         <div className="mb-8 space-y-3">
           {programs.map((program) => (
             <div
               key={program.id}
-              className="flex items-start justify-between rounded-2xl border border-stone-200 bg-white shadow-sm shadow-stone-900/5 p-4"
+              className="space-y-3 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm shadow-stone-900/5"
             >
-              <div>
-                <h3 className="font-medium text-stone-900">{program.name}</h3>
-                <p className="mt-1 text-sm text-stone-600">
-                  {program.days} · {program.time} · {program.location}
-                </p>
-                <p className="mt-1 text-sm text-stone-500">{formatCurrency(program.price)} / month</p>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="font-medium text-stone-900">{program.name}</h3>
+                  <p className="mt-1 text-sm text-stone-600">
+                    {program.days} · {program.time} · {program.location}
+                  </p>
+                  <p className="mt-1 text-sm text-stone-500">
+                    {dayChoices(program)
+                      .map((d) => `${daysLabel(d)}: ${formatCurrency(priceForDays(program, d))}`)
+                      .join(" · ")}{" "}
+                    / month
+                  </p>
+                </div>
+                <Form method="post">
+                  <input type="hidden" name="intent" value="removeProgram" />
+                  <input type="hidden" name="programId" value={program.id} />
+                  <input type="hidden" name="active" value="false" />
+                  <button type="submit" className="text-xs text-stone-500 hover:text-red-700 hover:underline">
+                    Remove
+                  </button>
+                </Form>
               </div>
-              <Form method="post">
-                <input type="hidden" name="intent" value="removeProgram" />
-                <input type="hidden" name="programId" value={program.id} />
-                <input type="hidden" name="active" value="false" />
-                <button type="submit" className="text-xs text-stone-500 hover:text-red-700 hover:underline">
-                  Remove
-                </button>
-              </Form>
+              <details>
+                <summary className="cursor-pointer text-sm font-semibold text-emerald-700">Price and days</summary>
+                <div className="mt-3">
+                  <ProgramDaysForm program={program} />
+                </div>
+              </details>
             </div>
           ))}
         </div>

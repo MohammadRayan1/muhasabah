@@ -2,8 +2,6 @@ import { randomBytes } from "node:crypto";
 import { redirect } from "react-router";
 import { prisma } from "@/lib/prisma.server";
 import {
-  BILLING_DAY,
-  calculateFirstBill,
   nextBillingDate,
   parseDateOnly,
   startOfDay,
@@ -27,89 +25,6 @@ export function appUrl() {
   return process.env.APP_URL ?? "http://localhost:5173";
 }
 
-export async function createStudent(formData: FormData): Promise<ActionState> {
-  const name = str(formData, "name");
-  const phone = str(formData, "phone");
-  const email = str(formData, "email");
-  const tuitionAmount = Number(formData.get("tuitionAmount"));
-  const firstMonthPaid = formData.get("firstMonthPaid") === "on";
-  const notes = str(formData, "notes");
-  const priceNote = str(formData, "priceNote");
-  const programIds = formData.getAll("programIds").map(String).filter(Boolean);
-  // "" = no family, "new" = create one from newFamilyName, otherwise an existing family id
-  const familyChoice = str(formData, "familyId");
-  const newFamilyName = str(formData, "newFamilyName");
-  const guardianName = str(formData, "guardianName");
-
-  if (!name) return { error: "Name is required" };
-  if (!Number.isFinite(tuitionAmount) || tuitionAmount <= 0) {
-    return { error: "Tuition amount must be a positive number" };
-  }
-  if (familyChoice === "new" && !newFamilyName) return { error: "Give the new family a name" };
-
-  const joinedAtStr = str(formData, "joinedAt");
-  if (joinedAtStr && !/^\d{4}-\d{2}-\d{2}$/.test(joinedAtStr)) {
-    return { error: "Date joined must be a valid date" };
-  }
-  const joinedAt = joinedAtStr ? parseDateOnly(joinedAtStr) : startOfDay(new Date());
-  if (Number.isNaN(joinedAt.getTime())) return { error: "Date joined must be a valid date" };
-
-  const firstBill = calculateFirstBill(tuitionAmount, joinedAt);
-
-  await prisma.$transaction(async (tx) => {
-    let familyId: string | null = familyChoice && familyChoice !== "new" ? familyChoice : null;
-    if (familyChoice === "new") {
-      const family = await tx.family.create({
-        data: {
-          name: newFamilyName,
-          guardianName: guardianName || null,
-          phone: phone || null,
-          email: email || null,
-        },
-      });
-      familyId = family.id;
-    }
-
-    const student = await tx.student.create({
-      data: {
-        familyId,
-        name,
-        phone: phone || null,
-        email: email || null,
-        tuitionAmount,
-        // Set only when the first bill differs from a normal month (leftover days added on).
-        firstPaymentAmount: firstBill.hasLeftover ? firstBill.total : null,
-        priceNote: priceNote || null,
-        billingDay: BILLING_DAY,
-        nextDueDate: firstBill.dueDate,
-        joinedAt,
-        notes: notes || null,
-      },
-    });
-
-    if (firstMonthPaid) {
-      await tx.payment.create({
-        data: { studentId: student.id, amount: firstBill.total },
-      });
-      await tx.student.update({
-        where: { id: student.id },
-        data: {
-          nextDueDate: nextBillingDate(firstBill.dueDate),
-          firstPaymentAmount: null,
-        },
-      });
-    }
-
-    if (programIds.length > 0) {
-      await tx.enrollment.createMany({
-        data: programIds.map((programId) => ({ studentId: student.id, programId })),
-      });
-    }
-  });
-
-  throw redirect("/");
-}
-
 export async function createProgram(formData: FormData): Promise<ActionState> {
   const name = str(formData, "name");
   const days = str(formData, "days");
@@ -125,8 +40,41 @@ export async function createProgram(formData: FormData): Promise<ActionState> {
     return { error: "Price must be a positive number" };
   }
 
-  await prisma.program.create({ data: { name, days, time, location, price } });
+  const daysPerWeek = Number(formData.get("daysPerWeek"));
+  if (!Number.isInteger(daysPerWeek) || daysPerWeek < 1 || daysPerWeek > 7) {
+    return { error: "Days a week must be between 1 and 7" };
+  }
+  const dayOptions = parseDayOptions(formData, daysPerWeek);
+
+  await prisma.program.create({ data: { name, days, time, location, price, daysPerWeek, dayOptions } });
   return { ok: true };
+}
+
+/** Day counts the teacher ticked, kept within 1..daysPerWeek. The full schedule is always offered. */
+function parseDayOptions(formData: FormData, daysPerWeek: number) {
+  const picked = formData
+    .getAll("dayOptions")
+    .map(Number)
+    .filter((d) => Number.isInteger(d) && d >= 1 && d < daysPerWeek);
+  return [...new Set([...picked, daysPerWeek])].sort((a, b) => a - b);
+}
+
+/** Change a program's days a week, the day counts parents can choose, and its price. */
+export async function updateProgramDays(formData: FormData): Promise<ActionState> {
+  const programId = str(formData, "programId");
+  const daysPerWeek = Number(formData.get("daysPerWeek"));
+  const price = Number(formData.get("price"));
+  if (!programId) return { error: "Missing program" };
+  if (!Number.isInteger(daysPerWeek) || daysPerWeek < 1 || daysPerWeek > 7) {
+    return { error: "Days a week must be between 1 and 7" };
+  }
+  if (!Number.isFinite(price) || price <= 0) return { error: "Price must be a positive number" };
+
+  await prisma.program.update({
+    where: { id: programId },
+    data: { daysPerWeek, price, dayOptions: parseDayOptions(formData, daysPerWeek) },
+  });
+  return { ok: true, message: "Saved" };
 }
 
 export async function setProgramActive(formData: FormData): Promise<ActionState> {

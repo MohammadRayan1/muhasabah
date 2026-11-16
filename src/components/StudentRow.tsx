@@ -22,13 +22,15 @@ function dueDateLabel(daysUntilDue: number, status: PaymentStatus) {
 }
 
 type StudentWithPrograms = Student & {
-  enrollments: { program: Program }[];
+  enrollments: { daysPerWeek: number | null; program: Program }[];
   family?: { phone: string | null; email: string | null; guardianName: string | null } | null;
 };
 
 export default function StudentRow({ student, canEmail = false }: { student: StudentWithPrograms; canEmail?: boolean }) {
   const { status, daysUntilDue } = getPaymentStatus(student.nextDueDate);
-  const programs = student.enrollments.map((e) => e.program.name).join(", ");
+  const programs = student.enrollments
+    .map((e) => (e.daysPerWeek ? `${e.program.name} (${e.daysPerWeek}d)` : e.program.name))
+    .join(", ");
   const amountDue = student.firstPaymentAmount ?? student.tuitionAmount;
   const payFetcher = useFetcher();
   const removeFetcher = useFetcher();

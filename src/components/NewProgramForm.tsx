@@ -1,21 +1,30 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useFetcher } from "react-router";
 import type { ActionState } from "@/lib/action-state";
 import { useSubmitGuard } from "@/hooks/useSubmitGuard";
 import FormError from "@/components/FormError";
+import DayOptionsFields from "@/components/DayOptionsFields";
 
 export default function NewProgramForm() {
   const fetcher = useFetcher<ActionState>();
   const pending = fetcher.state !== "idle";
   const onSubmit = useSubmitGuard(pending);
   const formRef = useRef<HTMLFormElement>(null);
+  const [price, setPrice] = useState("");
+  const [resetKey, setResetKey] = useState(0);
 
   useEffect(() => {
     if (fetcher.state === "idle" && fetcher.data?.ok) formRef.current?.reset();
   }, [fetcher.state, fetcher.data]);
 
   return (
-    <fetcher.Form ref={formRef} method="post" onSubmit={onSubmit} className="space-y-4">
+    <fetcher.Form ref={formRef} method="post" onSubmit={onSubmit}
+      onReset={() => {
+        setPrice("");
+        setResetKey((k) => k + 1);
+      }}
+      className="space-y-4"
+    >
       <input type="hidden" name="intent" value="createProgram" />
       <FormError message={fetcher.data?.error} />
 
@@ -77,7 +86,7 @@ export default function NewProgramForm() {
         </div>
         <div>
           <label htmlFor="price" className="block text-sm font-medium text-stone-700">
-            Price ($/month)
+            Price for all days ($/month)
           </label>
           <input
             id="price"
@@ -86,10 +95,14 @@ export default function NewProgramForm() {
             step="0.01"
             min="0.01"
             required
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
             className="mt-1 w-full rounded-xl border border-stone-300 px-3 py-2 text-sm"
           />
         </div>
       </div>
+
+      <DayOptionsFields key={resetKey} idPrefix="new" price={Number(price) || 0} />
 
       <button
         type="submit"

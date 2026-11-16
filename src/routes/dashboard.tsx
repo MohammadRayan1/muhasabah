@@ -12,7 +12,7 @@ import MonthLedger from "@/components/MonthLedger";
 import TodayLine from "@/components/TodayLine";
 import type { Family, Program, Student } from "@/generated/prisma/client";
 
-type StudentWithPrograms = Student & { enrollments: { program: Program }[]; family: Family | null };
+type StudentWithPrograms = Student & { enrollments: { daysPerWeek: number | null; program: Program }[]; family: Family | null };
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireTeacher(request);
@@ -130,10 +130,10 @@ function GettingStarted({ hasPrograms }: { hasPrograms: boolean }) {
     },
     {
       done: false,
-      href: "/students/new",
+      href: "/signups#new-link",
       icon: UserPlus,
-      title: "Add your first student",
-      body: "Pick their programs and the day they joined; the first bill is worked out for you.",
+      title: "Send your first sign-up link",
+      body: "Parents pick the program, the days and a start date. You approve, and the first bill is worked out for you.",
     },
   ];
 
