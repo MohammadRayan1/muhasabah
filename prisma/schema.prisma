@@ -24,6 +24,9 @@ model Student {
   nextDueDate        DateTime
   joinedAt           DateTime        @default(now())
   active             Boolean         @default(true)
+  // Signed up through a link and waiting for the teacher to approve. Kept out of
+  // billing, reminders and revenue until then.
+  pendingApproval    Boolean         @default(false)
   notes              String?
   familyId           String?
   family             Family?         @relation(fields: [familyId], references: [id], onDelete: SetNull)
@@ -155,4 +158,18 @@ model Enrollment {
   createdAt DateTime @default(now())
 
   @@unique([studentId, programId])
+}
+
+// A single-use sign-up link the teacher makes for one family. The teacher sets the
+// programs and price; the parent fills in everything else.
+model SignupLink {
+  id         String    @id @default(cuid())
+  token      String    @unique
+  label      String?
+  programIds String[]
+  price      Float
+  expiresAt  DateTime
+  usedAt     DateTime?
+  familyId   String?
+  createdAt  DateTime  @default(now())
 }

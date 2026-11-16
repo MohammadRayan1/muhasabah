@@ -14,7 +14,7 @@ export async function visibleStudentIds(session: SessionPayload): Promise<string
   if (!student) return [];
   if (!student.familyId) return [student.id];
   const siblings = await prisma.student.findMany({
-    where: { familyId: student.familyId, active: true },
+    where: { familyId: student.familyId, OR: [{ active: true }, { pendingApproval: true }] },
     select: { id: true },
   });
   return Array.from(new Set([student.id, ...siblings.map((s) => s.id)]));

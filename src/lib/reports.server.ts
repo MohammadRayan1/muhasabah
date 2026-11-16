@@ -53,6 +53,7 @@ export async function getMonthlyRevenue(monthsBack: number = 6): Promise<Monthly
   // still count toward the months they were actually enrolled and billable for.
   const [students, payments] = await Promise.all([
     prisma.student.findMany({
+      where: { pendingApproval: false },
       select: { tuitionAmount: true, joinedAt: true },
     }),
     prisma.payment.findMany({ select: { amount: true, paidAt: true } }),
@@ -91,7 +92,7 @@ export async function getMonthDetail(slug: string): Promise<MonthDetail | null> 
       orderBy: { paidAt: "asc" },
     }),
     prisma.student.findMany({
-      where: { joinedAt: { lte: monthEnd } },
+      where: { joinedAt: { lte: monthEnd }, pendingApproval: false },
       select: { id: true, name: true, active: true, tuitionAmount: true },
       orderBy: { name: "asc" },
     }),

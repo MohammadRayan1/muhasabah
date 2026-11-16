@@ -1,5 +1,6 @@
 import { Form, Link, useLocation } from "react-router";
 import {
+  ClipboardList,
   BellRing,
   Users,
   LayoutDashboard,
@@ -18,6 +19,7 @@ const NAV_ITEMS: {
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/families", label: "Families", icon: Users },
   { href: "/programs", label: "Programs", icon: BookOpen },
+  { href: "/signups", label: "Sign-ups", icon: ClipboardList },
   { href: "/reminders", label: "Reminders", icon: BellRing },
   {
     href: "/reports",
@@ -29,6 +31,14 @@ const NAV_ITEMS: {
 
 function isActive(pathname: string, href: string) {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
+}
+
+function Badge({ count }: { count: number }) {
+  return (
+    <span className="ml-auto rounded-full bg-gold px-2 py-0.5 text-xs font-bold text-stone-900 tabular-nums" aria-label={`${count} waiting`}>
+      {count}
+    </span>
+  );
 }
 
 function Wordmark({ size }: { size: "sm" | "lg" }) {
@@ -48,7 +58,7 @@ function Wordmark({ size }: { size: "sm" | "lg" }) {
  * App navigation. A full sidebar from md up; below that, a compact top bar with
  * the same links, so the dashboard is usable on a phone.
  */
-export default function Sidebar() {
+export default function Sidebar({ pendingSignups = 0 }: { pendingSignups?: number }) {
   const { pathname } = useLocation();
 
   return (
@@ -96,6 +106,7 @@ export default function Sidebar() {
               }`}
             >
               {item.shortLabel ?? item.label}
+              {item.href === "/signups" && pendingSignups > 0 ? <Badge count={pendingSignups} /> : null}
             </Link>
           ))}
         </nav>
@@ -127,6 +138,7 @@ export default function Sidebar() {
               >
                 <Icon className="h-5 w-5 shrink-0" strokeWidth={2} />
                 {item.label}
+                {item.href === "/signups" && pendingSignups > 0 ? <Badge count={pendingSignups} /> : null}
               </Link>
             );
           })}

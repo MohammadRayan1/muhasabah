@@ -4,6 +4,7 @@ export default [
   route("login", "routes/login.tsx"),
   route("logout", "routes/logout.ts"),
   route("invite/:token", "routes/invite.tsx"),
+  route("join/:token", "routes/join.tsx"),
   route("portal", "routes/portal.tsx"),
   route("receipts/:paymentId", "routes/receipt.tsx"),
 
@@ -17,6 +18,7 @@ export default [
     route("families/:id", "routes/family.tsx"),
     route("programs", "routes/programs.tsx"),
     route("reminders", "routes/reminders.tsx"),
+    route("signups", "routes/signups.tsx"),
     route("reports", "routes/reports.tsx"),
     route("reports/:month", "routes/report-month.tsx"),
     route("students/new", "routes/student-new.tsx"),

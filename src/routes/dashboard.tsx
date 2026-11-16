@@ -17,7 +17,7 @@ type StudentWithPrograms = Student & { enrollments: { program: Program }[]; fami
 export async function loader({ request }: Route.LoaderArgs) {
   await requireTeacher(request);
 
-  const [students, [month], programCount] = await Promise.all([
+  const [students, [month], programCount, pendingFamilies] = await Promise.all([
     prisma.student.findMany({
       where: { active: true },
       orderBy: { nextDueDate: "asc" },
@@ -25,9 +25,10 @@ export async function loader({ request }: Route.LoaderArgs) {
     }),
     getMonthlyRevenue(1),
     prisma.program.count({ where: { active: true } }),
+    prisma.family.count({ where: { students: { some: { pendingApproval: true } } } }),
   ]);
 
-  return { students, month, programCount, canEmail: emailConfigured() };
+  return { students, month, programCount, pendingFamilies, canEmail: emailConfigured() };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -45,7 +46,7 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 export default function Home({ loaderData }: Route.ComponentProps) {
-  const { students, month, programCount, canEmail } = loaderData;
+  const { students, month, programCount, pendingFamilies, canEmail } = loaderData;
 
   const overdue = students.filter((s) => getPaymentStatus(s.nextDueDate).status === "overdue");
   const dueSoon = students.filter((s) => getPaymentStatus(s.nextDueDate).status === "due_soon");
@@ -57,6 +58,19 @@ export default function Home({ loaderData }: Route.ComponentProps) {
         <h1 className="text-3xl font-bold tracking-tight text-stone-900">Assalamu alaikum</h1>
         <TodayLine />
       </header>
+
+      {pendingFamilies > 0 ? (
+        <Link
+          to="/signups"
+          className="mb-8 flex items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-amber-700 transition-colors hover:bg-amber-100"
+        >
+          <span className="font-semibold">
+            {pendingFamilies} new {pendingFamilies === 1 ? "family has" : "families have"} signed up and{" "}
+            {pendingFamilies === 1 ? "is" : "are"} waiting for you
+          </span>
+          <span className="text-sm font-semibold">Review →</span>
+        </Link>
+      ) : null}
 
       {students.length === 0 ? (
         <GettingStarted hasPrograms={programCount > 0} />

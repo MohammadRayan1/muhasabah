@@ -8,6 +8,7 @@ has paid, and what is due on the 1st of each month. Parents get a read-only port
 ## What it does
 
 - **Billing on the 1st.** Students who join mid-month get the rest of that month added to their first bill.
+- **Self sign-up.** You make a one-time link for each family and set the program and price. The parent fills in their own details, children and start date, and you approve or decline them on the Sign-ups page.
 - **Families.** Siblings share one parent contact and one portal view, and can be marked paid together.
 - **Reminders.** One tap opens WhatsApp, a text or an email with the message already written. There are also optional automatic emails a few days before and after the 1st.
 - **Receipts.** Every payment gets a numbered receipt (MUH-00001) that can be printed, saved as a PDF, or emailed.
