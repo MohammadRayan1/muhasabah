@@ -1,45 +1,76 @@
 # Muhasabah · محاسبة
 
-A tuition tracker for one teacher running Islamic classes. It tracks who is enrolled, who
-has paid, and what is due on the 1st of each month. Parents get a read-only portal.
+**A tuition tracker for teachers of Islamic classes.** It covers who's enrolled, who's paid, what's due on the 1st, and how each student's Quran memorization is going. Parents get their own portal.
 
-**Live:** https://muhsabah.netlify.app
+**[Live app →](https://muhsabah.netlify.app)** · React Router 7 · TypeScript · PostgreSQL · Prisma · Tailwind CSS · Netlify
 
-## What it does
+![Teacher dashboard](docs/screenshots/dashboard.png)
 
-- **Billing on the 1st.** Students who join mid-month get the rest of that month added to their first bill.
-- **Self sign-up.** You make a one-time link for each family and set the program and price. The parent fills in their own details, children and start date, and you approve or decline them on the Sign-ups page.
-- **Families.** Siblings share one parent contact and one portal view, and can be marked paid together.
-- **Reminders.** One tap opens WhatsApp, a text or an email with the message already written. There are also optional automatic emails a few days before and after the 1st.
-- **Receipts.** Every payment gets a numbered receipt (MUH-00001) that can be printed, saved as a PDF, or emailed.
-- **Quran progress.** Log sabaq, sabqi, manzil and nazra by surah and ayah, with how it went. Parents see it in the portal.
-- **Online payments (optional).** Parents can pay by card through Stripe, and the payment is recorded on its own.
-- **Revenue.** Expected and collected totals per month.
+*Muhasabah* (محاسبة) means "taking account": reflecting on where things stand. Here, it's your class.
 
-## Stack
+## Why I built it
 
-React Router 7 (framework mode) on Vite, Prisma 7 with Postgres (Neon), and Tailwind CSS 4.
-It's deployed on Netlify with `@netlify/vite-plugin-react-router`, plus a scheduled
-Netlify Function for the daily reminder run.
+Small Quran and Islamic-studies classes usually run on a notebook and memory. Who paid this month, who joined mid-month and owes a partial bill, which sibling belongs to which family, and where each child stopped in their hifz. Muhasabah puts all of that in one calm place. It's built for one teacher, not a whole school, so there's nothing extra to set up.
 
-## Running it locally
+## Features
+
+| | |
+|---|---|
+| **Billing on the 1st** | Everyone is billed on the 1st. Join on Nov 11 at $100/month and the first bill is $167 on Dec 1: 20 prorated days plus December. |
+| **Self sign-up with approval** | The teacher makes a one-time link with the program and price set. Parents enter their own details, children and start date, and the teacher approves or declines. |
+| **Families** | Siblings share one parent contact and one portal, and can be marked paid in one go. |
+| **Reminders** | One tap opens WhatsApp, a text or an email with a polite message already written. Optional automatic emails go out before and after the 1st. |
+| **Receipts** | Every payment gets a numbered receipt (MUH-00001) to print, save as a PDF or email. |
+| **Quran progress** | Log sabaq, sabqi, manzil and nazra by surah and ayah, with mistakes and how it went. Parents see it too. |
+| **Online payments** | Optional Stripe Checkout from the parent portal, recorded by webhook. |
+| **Revenue** | Expected vs. collected for each month, down to each payment. |
+| **Dark mode** | On every page, including sign-in, with Gregorian and Hijri dates. |
+
+## Screenshots
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/quran-progress.png" alt="Quran progress on a student's page"><br><sub>Logging Quran progress</sub></td>
+    <td width="50%"><img src="docs/screenshots/signups.png" alt="Sign-ups page with approval queue"><br><sub>Approving sign-ups and making links</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/sign-in.png" alt="Sign-in page"><br><sub>Sign-in</sub></td>
+    <td width="50%"><img src="docs/screenshots/receipt.png" alt="Printable receipt"><br><sub>Printable receipt</sub></td>
+  </tr>
+</table>
+
+<p>
+  <img src="docs/screenshots/parent-signup-mobile.png" width="260" alt="Parent sign-up on a phone">
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/parent-portal-dark.png" width="260" alt="Parent portal in dark mode">
+</p>
+<sub>The parent's side on a phone: signing up from a link, then the family portal in dark mode.</sub>
+
+*All names in the screenshots are made-up test data.*
+
+## How it's built
+
+- **React Router 7 (framework mode)** on Vite, with server loaders and actions. Forms work through plain `<form>` posts with an `intent`, and every teacher route checks the session on the server.
+- **PostgreSQL (Neon) + Prisma 7**, using the `pg` driver adapter. Migrations live in `prisma/migrations`.
+- **Auth:** bcrypt password hashes and a signed, HTTP-only JWT cookie. Teacher and parent roles. Parents can only reach their own children (`src/lib/access.server.ts`).
+- **Billing logic** in `src/lib/dates.ts`: due dates on the 1st and prorated first bills.
+- **Netlify:** SSR through `@netlify/vite-plugin-react-router`, plus a scheduled function (`netlify/functions/send-reminders.mts`) for the daily reminder run.
+- **Stripe** (optional): Checkout sessions and a signed webhook that records each payment once, even if Stripe retries.
+- **Tailwind CSS 4**, with a warm olive, gold and emerald palette, Nunito and Amiri fonts, and an eight-point-star pattern.
+
+## Run it locally
 
 ```bash
-cp .env.example .env    # fill in DATABASE_URL, SESSION_SECRET, APP_URL
+cp .env.example .env        # fill in DATABASE_URL, SESSION_SECRET, APP_URL
 npm install
 npx prisma migrate deploy
-npx tsx scripts/create-teacher.ts   # make your teacher login
-npm run dev                          # http://localhost:5173
+npx tsx scripts/create-teacher.ts
+npm run dev                  # http://localhost:5173
 ```
 
-`scripts/reset-password.ts` resets a forgotten password.
+`scripts/reset-password.ts` resets a forgotten password. Check your work with `npm run typecheck`, `npm run lint` and `npm run build`.
 
-## Optional setup
+### Optional setup
 
-**Email.** Add `RESEND_API_KEY`. Resend's test sender only delivers to your own Resend
-address. To reach parents, verify a domain in Resend and set `EMAIL_FROM`. Then turn on
-automatic reminders on the Reminders page.
-
-**Stripe.** Add `STRIPE_SECRET_KEY`. In the Stripe dashboard, create a webhook to
-`https://<your-site>/api/stripe-webhook` for the `checkout.session.completed` event, and add its
-signing secret as `STRIPE_WEBHOOK_SECRET`. The **Pay online** button then appears in the portal.
+- **Email** (invites, reminders, receipts): set `RESEND_API_KEY`. To email parents, verify a domain in Resend and set `EMAIL_FROM`.
+- **Card payments:** set `STRIPE_SECRET_KEY`, then add a Stripe webhook to `https://<your-site>/api/stripe-webhook` for `checkout.session.completed` and set `STRIPE_WEBHOOK_SECRET`.
