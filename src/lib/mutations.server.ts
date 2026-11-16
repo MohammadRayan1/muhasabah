@@ -1,9 +1,6 @@
-"use server";
-
-import { randomBytes } from "crypto";
-import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { randomBytes } from "node:crypto";
+import { redirect } from "react-router";
+import { prisma } from "@/lib/prisma.server";
 import {
   BILLING_DAY,
   calculateFirstBill,
@@ -11,24 +8,28 @@ import {
   parseDateOnly,
   startOfDay,
 } from "@/lib/dates";
-import { monthBounds } from "@/lib/reports";
-import { requireTeacher } from "@/lib/auth/dal";
-import { sendInviteEmail } from "@/lib/email";
+import { monthBounds } from "@/lib/reports.server";
+import { sendInviteEmail } from "@/lib/email.server";
 import type { ActionState } from "@/lib/action-state";
 
-export async function createStudent(
-  _prevState: ActionState,
-  formData: FormData,
-): Promise<ActionState> {
-  await requireTeacher();
+// Teacher mutations. Every route action calls requireTeacher(request) before these.
 
-  const name = String(formData.get("name") ?? "").trim();
-  const phone = String(formData.get("phone") ?? "").trim();
-  const email = String(formData.get("email") ?? "").trim();
+function str(formData: FormData, key: string) {
+  return String(formData.get(key) ?? "").trim();
+}
+
+export function appUrl() {
+  return process.env.APP_URL ?? "http://localhost:5173";
+}
+
+export async function createStudent(formData: FormData): Promise<ActionState> {
+  const name = str(formData, "name");
+  const phone = str(formData, "phone");
+  const email = str(formData, "email");
   const tuitionAmount = Number(formData.get("tuitionAmount"));
   const firstMonthPaid = formData.get("firstMonthPaid") === "on";
-  const notes = String(formData.get("notes") ?? "").trim();
-  const priceNote = String(formData.get("priceNote") ?? "").trim();
+  const notes = str(formData, "notes");
+  const priceNote = str(formData, "priceNote");
   const programIds = formData.getAll("programIds").map(String).filter(Boolean);
 
   if (!name) return { error: "Name is required" };
@@ -36,7 +37,7 @@ export async function createStudent(
     return { error: "Tuition amount must be a positive number" };
   }
 
-  const joinedAtStr = String(formData.get("joinedAt") ?? "").trim();
+  const joinedAtStr = str(formData, "joinedAt");
   if (joinedAtStr && !/^\d{4}-\d{2}-\d{2}$/.test(joinedAtStr)) {
     return { error: "Date joined must be a valid date" };
   }
@@ -82,20 +83,14 @@ export async function createStudent(
     }
   });
 
-  revalidatePath("/");
-  redirect("/");
+  throw redirect("/");
 }
 
-export async function createProgram(
-  _prevState: ActionState,
-  formData: FormData,
-): Promise<ActionState> {
-  await requireTeacher();
-
-  const name = String(formData.get("name") ?? "").trim();
-  const days = String(formData.get("days") ?? "").trim();
-  const time = String(formData.get("time") ?? "").trim();
-  const location = String(formData.get("location") ?? "").trim();
+export async function createProgram(formData: FormData): Promise<ActionState> {
+  const name = str(formData, "name");
+  const days = str(formData, "days");
+  const time = str(formData, "time");
+  const location = str(formData, "location");
   const price = Number(formData.get("price"));
 
   if (!name) return { error: "Name is required" };
@@ -107,38 +102,29 @@ export async function createProgram(
   }
 
   await prisma.program.create({ data: { name, days, time, location, price } });
-
-  revalidatePath("/programs");
-  revalidatePath("/students/new");
-  redirect("/programs");
+  return { ok: true };
 }
 
-export async function setProgramActive(formData: FormData) {
-  await requireTeacher();
-
-  const programId = String(formData.get("programId") ?? "");
-  const active = String(formData.get("active") ?? "") === "true";
-
-  if (!programId) throw new Error("Missing program");
+export async function setProgramActive(formData: FormData): Promise<ActionState> {
+  const programId = str(formData, "programId");
+  const active = str(formData, "active") === "true";
+  if (!programId) return { error: "Missing program" };
 
   await prisma.program.update({ where: { id: programId }, data: { active } });
-
-  revalidatePath("/programs");
-  revalidatePath("/students/new");
+  return { ok: true };
 }
 
-export async function recordPayment(formData: FormData) {
-  await requireTeacher();
-
-  const studentId = String(formData.get("studentId") ?? "");
+export async function recordPayment(formData: FormData): Promise<ActionState> {
+  const studentId = str(formData, "studentId");
   const amount = Number(formData.get("amount"));
 
-  if (!studentId) throw new Error("Missing student");
+  if (!studentId) return { error: "Missing student" };
   if (!Number.isFinite(amount) || amount <= 0) {
-    throw new Error("Amount must be a positive number");
+    return { error: "Amount must be a positive number" };
   }
 
-  const student = await prisma.student.findUniqueOrThrow({ where: { id: studentId } });
+  const student = await prisma.student.findUnique({ where: { id: studentId } });
+  if (!student) return { error: "Student not found" };
 
   await prisma.$transaction([
     prisma.payment.create({ data: { studentId, amount } }),
@@ -151,46 +137,32 @@ export async function recordPayment(formData: FormData) {
     }),
   ]);
 
-  revalidatePath("/");
+  return { ok: true };
 }
 
-export async function resetMonthPayments(formData: FormData) {
-  await requireTeacher();
-
-  const month = String(formData.get("month") ?? "");
-  if (!/^\d{4}-\d{2}$/.test(month)) throw new Error("Invalid month");
+export async function resetMonthPayments(formData: FormData): Promise<ActionState> {
+  const month = str(formData, "month");
+  if (!/^\d{4}-\d{2}$/.test(month)) return { error: "Invalid month" };
 
   const { monthStart, monthEnd } = monthBounds(month);
 
   await prisma.payment.deleteMany({
     where: { paidAt: { gte: monthStart, lte: monthEnd } },
   });
-
-  revalidatePath(`/reports/${month}`);
-  revalidatePath("/reports");
-  revalidatePath("/");
+  return { ok: true };
 }
 
-export async function setStudentActive(formData: FormData) {
-  await requireTeacher();
-
-  const studentId = String(formData.get("studentId") ?? "");
-  const active = String(formData.get("active") ?? "") === "true";
-
-  if (!studentId) throw new Error("Missing student");
+export async function setStudentActive(formData: FormData): Promise<ActionState> {
+  const studentId = str(formData, "studentId");
+  const active = str(formData, "active") === "true";
+  if (!studentId) return { error: "Missing student" };
 
   await prisma.student.update({ where: { id: studentId }, data: { active } });
-
-  revalidatePath("/");
+  return { ok: true };
 }
 
-export async function updateStudentPrograms(
-  _prevState: ActionState,
-  formData: FormData,
-): Promise<ActionState> {
-  await requireTeacher();
-
-  const studentId = String(formData.get("studentId") ?? "");
+export async function updateStudentPrograms(formData: FormData): Promise<ActionState> {
+  const studentId = str(formData, "studentId");
   const tuitionAmount = Number(formData.get("tuitionAmount"));
   const programIds = formData.getAll("programIds").map(String).filter(Boolean);
 
@@ -221,26 +193,18 @@ export async function updateStudentPrograms(
     }),
   ]);
 
-  revalidatePath(`/students/${studentId}`);
-  revalidatePath("/");
-  return {};
+  return { ok: true };
 }
 
-export async function createInvite(
-  _prevState: ActionState,
-  formData: FormData,
-): Promise<ActionState> {
-  await requireTeacher();
-
-  const studentId = String(formData.get("studentId") ?? "");
-  const email = String(formData.get("email") ?? "")
-    .trim()
-    .toLowerCase();
+export async function createInvite(formData: FormData): Promise<ActionState> {
+  const studentId = str(formData, "studentId");
+  const email = str(formData, "email").toLowerCase();
 
   if (!studentId) return { error: "Missing student" };
   if (!email) return { error: "Email is required" };
 
-  const student = await prisma.student.findUniqueOrThrow({ where: { id: studentId } });
+  const student = await prisma.student.findUnique({ where: { id: studentId } });
+  if (!student) return { error: "Student not found" };
 
   const existingUser = await prisma.user.findUnique({ where: { email } });
   if (existingUser) {
@@ -254,11 +218,11 @@ export async function createInvite(
     data: { studentId, email, token, expiresAt },
   });
 
-  const appUrl = process.env.APP_URL ?? "http://localhost:3000";
-  const inviteUrl = `${appUrl}/invite/${token}`;
+  await sendInviteEmail({
+    to: email,
+    studentName: student.name,
+    inviteUrl: `${appUrl()}/invite/${token}`,
+  });
 
-  await sendInviteEmail({ to: email, studentName: student.name, inviteUrl });
-
-  revalidatePath(`/students/${studentId}`);
-  return {};
+  return { ok: true };
 }

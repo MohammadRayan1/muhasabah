@@ -1,12 +1,18 @@
-import Link from "next/link";
-import { getMonthlyRevenue } from "@/lib/reports";
+import { Link } from "react-router";
+import type { Route } from "./+types/reports";
+import { requireTeacher } from "@/lib/auth/session.server";
+import { getMonthlyRevenue } from "@/lib/reports.server";
 import { formatCurrency } from "@/lib/format";
-import { requireTeacher } from "@/lib/auth/dal";
 
-export default async function ReportsPage() {
-  await requireTeacher();
+export const meta: Route.MetaFunction = () => [{ title: "Monthly Revenue · Muhasabah" }];
 
-  const months = await getMonthlyRevenue(6);
+export async function loader({ request }: Route.LoaderArgs) {
+  await requireTeacher(request);
+  return { months: await getMonthlyRevenue(6) };
+}
+
+export default function ReportsPage({ loaderData }: Route.ComponentProps) {
+  const { months } = loaderData;
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -32,7 +38,7 @@ export default async function ReportsPage() {
               return (
                 <tr key={m.slug} className="cursor-pointer hover:bg-stone-50">
                   <td className="p-0">
-                    <Link href={`/reports/${m.slug}`} className="block px-4 py-3 text-stone-900">
+                    <Link to={`/reports/${m.slug}`} className="block px-4 py-3 text-stone-900">
                       {m.label} →
                     </Link>
                   </td>

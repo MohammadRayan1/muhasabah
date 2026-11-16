@@ -1,7 +1,5 @@
-"use client";
-
 import { useState } from "react";
-import { resetMonthPayments } from "@/lib/actions";
+import { Form } from "react-router";
 import { formatCurrency } from "@/lib/format";
 
 export default function ResetMonthButton({
@@ -45,7 +43,7 @@ export default function ResetMonthButton({
         >
           Cancel
         </button>
-        <form action={resetMonthPayments}>
+        <Form method="post" onSubmit={() => setConfirming(false)}>
           <input type="hidden" name="month" value={month} />
           <button
             type="submit"
@@ -53,7 +51,7 @@ export default function ResetMonthButton({
           >
             Yes, delete
           </button>
-        </form>
+        </Form>
       </div>
     </div>
   );

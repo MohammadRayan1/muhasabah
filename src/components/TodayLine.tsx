@@ -1,5 +1,3 @@
-"use client";
-
 import { useSyncExternalStore } from "react";
 
 const gregorian = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric" });

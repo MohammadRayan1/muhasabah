@@ -1,16 +1,43 @@
-"use client";
-
-import { useActionState } from "react";
-import { login } from "@/lib/auth-actions";
-import { initialActionState } from "@/lib/action-state";
+import { Form, redirect, useNavigation } from "react-router";
+import type { Route } from "./+types/login";
+import { prisma } from "@/lib/prisma.server";
+import { createSessionRedirect, getSession, homeFor } from "@/lib/auth/session.server";
+import { verifyPassword } from "@/lib/auth/password.server";
 import FormError from "@/components/FormError";
 import GeometricPattern from "@/components/GeometricPattern";
 
 const inputClass =
   "mt-1.5 h-12 w-full rounded-xl border border-stone-300 bg-white px-4 text-[15px] text-stone-900 transition-[border-color,box-shadow] outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/15";
 
-export default function LoginPage() {
-  const [state, formAction, pending] = useActionState(login, initialActionState);
+export const meta: Route.MetaFunction = () => [{ title: "Sign in · Muhasabah" }];
+
+export async function loader({ request }: Route.LoaderArgs) {
+  const session = await getSession(request);
+  if (session) throw redirect(homeFor(session.role));
+  return null;
+}
+
+export async function action({ request }: Route.ActionArgs) {
+  const formData = await request.formData();
+  const email = String(formData.get("email") ?? "")
+    .trim()
+    .toLowerCase();
+  const password = String(formData.get("password") ?? "");
+
+  if (!email || !password) {
+    return { error: "Email and password are required" };
+  }
+
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user || !(await verifyPassword(password, user.passwordHash))) {
+    return { error: "Invalid email or password" };
+  }
+
+  return createSessionRedirect(user.id, user.role);
+}
+
+export default function LoginPage({ actionData }: Route.ComponentProps) {
+  const pending = useNavigation().state !== "idle";
 
   return (
     <main className="grid min-h-screen lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
@@ -41,21 +68,14 @@ export default function LoginPage() {
           <h1 className="text-3xl font-bold tracking-tight text-stone-900">Assalamu alaikum</h1>
           <p className="mt-2 text-stone-500">Welcome back. Sign in to see your class.</p>
 
-          <form action={formAction} className="mt-8 space-y-5">
-            <FormError message={state.error} />
+          <Form method="post" className="mt-8 space-y-5">
+            <FormError message={actionData?.error} />
 
             <div>
               <label htmlFor="email" className="block text-sm font-semibold text-stone-700">
                 Email
               </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                className={inputClass}
-              />
+              <input id="email" name="email" type="email" autoComplete="email" required className={inputClass} />
             </div>
 
             <div>
@@ -79,7 +99,7 @@ export default function LoginPage() {
             >
               {pending ? "Signing in…" : "Sign in"}
             </button>
-          </form>
+          </Form>
         </div>
       </section>
     </main>

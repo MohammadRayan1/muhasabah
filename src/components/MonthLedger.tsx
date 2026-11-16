@@ -1,6 +1,6 @@
 import { formatCurrency } from "@/lib/format";
 import GeometricPattern from "@/components/GeometricPattern";
-import type { MonthlyRevenue } from "@/lib/reports";
+import type { MonthlyRevenue } from "@/lib/reports.server";
 
 /**
  * The dashboard's lead panel: this month's collected-vs-expected as one sentence and

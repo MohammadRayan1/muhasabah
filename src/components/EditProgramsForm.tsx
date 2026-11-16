@@ -1,8 +1,6 @@
-"use client";
-
-import { useActionState, useState } from "react";
-import { updateStudentPrograms } from "@/lib/actions";
-import { initialActionState } from "@/lib/action-state";
+import { useState } from "react";
+import { useFetcher } from "react-router";
+import type { ActionState } from "@/lib/action-state";
 import { formatCurrency } from "@/lib/format";
 import FormError from "@/components/FormError";
 import type { Program } from "@/generated/prisma/client";
@@ -18,7 +16,8 @@ export default function EditProgramsForm({
   programs: Program[];
   enrolledProgramIds: string[];
 }) {
-  const [state, formAction, pending] = useActionState(updateStudentPrograms, initialActionState);
+  const fetcher = useFetcher<ActionState>();
+  const pending = fetcher.state !== "idle";
   const [selected, setSelected] = useState<Set<string>>(new Set(enrolledProgramIds));
   const [tuitionAmount, setTuitionAmount] = useState(String(initialTuitionAmount));
 
@@ -40,9 +39,10 @@ export default function EditProgramsForm({
   }
 
   return (
-    <form action={formAction} className="space-y-3">
+    <fetcher.Form method="post" className="space-y-3">
+      <input type="hidden" name="intent" value="updatePrograms" />
       <input type="hidden" name="studentId" value={studentId} />
-      <FormError message={state.error} />
+      <FormError message={fetcher.data?.error} />
 
       <div className="space-y-2">
         {programs.map((program) => (
@@ -98,6 +98,6 @@ export default function EditProgramsForm({
         Checking or unchecking a program adjusts the amount above by that program&apos;s price —
         the next due date doesn&apos;t change.
       </p>
-    </form>
+    </fetcher.Form>
   );
 }

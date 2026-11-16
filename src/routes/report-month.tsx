@@ -1,27 +1,36 @@
-import Link from "next/link";
-import { notFound } from "next/navigation";
-import { getMonthDetail } from "@/lib/reports";
+import { data, Link } from "react-router";
+import type { Route } from "./+types/report-month";
+import { requireTeacher } from "@/lib/auth/session.server";
+import { getMonthDetail } from "@/lib/reports.server";
+import { resetMonthPayments } from "@/lib/mutations.server";
 import { formatCurrency, formatDate } from "@/lib/format";
-import { requireTeacher } from "@/lib/auth/dal";
 import ResetMonthButton from "@/components/ResetMonthButton";
 
-export default async function MonthDetailPage({
-  params,
-}: {
-  params: Promise<{ month: string }>;
-}) {
-  await requireTeacher();
+export const meta: Route.MetaFunction = ({ data }) => [
+  { title: `${data?.detail.label ?? "Month"} · Muhasabah` },
+];
 
-  const { month } = await params;
-  const detail = await getMonthDetail(month);
+export async function loader({ request, params }: Route.LoaderArgs) {
+  await requireTeacher(request);
+  const detail = await getMonthDetail(params.month);
+  if (!detail) throw data("Not found", { status: 404 });
+  return { detail };
+}
 
-  if (!detail) notFound();
+export async function action({ request, params }: Route.ActionArgs) {
+  await requireTeacher(request);
+  const formData = await request.formData();
+  formData.set("month", params.month);
+  return resetMonthPayments(formData);
+}
 
+export default function MonthDetailPage({ loaderData }: Route.ComponentProps) {
+  const { detail } = loaderData;
   const diff = detail.collectedTotal - detail.expectedTotal;
 
   return (
     <div className="mx-auto max-w-2xl">
-      <Link href="/reports" className="text-sm text-stone-500 hover:underline">
+      <Link to="/reports" className="text-sm text-stone-500 hover:underline">
         ← Back to Monthly Revenue
       </Link>
 
@@ -70,7 +79,7 @@ export default async function MonthDetailPage({
               {detail.payments.map((payment) => (
                 <tr key={payment.id}>
                   <td className="px-4 py-3 text-stone-900">
-                    <Link href={`/students/${payment.studentId}`} className="hover:underline">
+                    <Link to={`/students/${payment.studentId}`} className="hover:underline">
                       {payment.studentName}
                     </Link>
                     {!payment.studentActive ? (
@@ -107,7 +116,7 @@ export default async function MonthDetailPage({
               {detail.expectedStudents.map((student) => (
                 <tr key={student.id}>
                   <td className="px-4 py-3 text-stone-900">
-                    <Link href={`/students/${student.id}`} className="hover:underline">
+                    <Link to={`/students/${student.id}`} className="hover:underline">
                       {student.name}
                     </Link>
                     {!student.active ? (

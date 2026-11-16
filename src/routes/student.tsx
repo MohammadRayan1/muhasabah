@@ -1,34 +1,58 @@
-import { notFound } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { data } from "react-router";
+import type { Route } from "./+types/student";
+import { prisma } from "@/lib/prisma.server";
+import { requireTeacher } from "@/lib/auth/session.server";
+import { appUrl, createInvite, updateStudentPrograms } from "@/lib/mutations.server";
 import { getPaymentStatus, STATUS_BADGE_STYLES, STATUS_LABEL } from "@/lib/status";
 import { formatCurrency, formatDate } from "@/lib/format";
-import { requireTeacher } from "@/lib/auth/dal";
 import SendInviteForm from "@/components/SendInviteForm";
 import EditProgramsForm from "@/components/EditProgramsForm";
 import Avatar from "@/components/Avatar";
 
-export default async function StudentProfilePage({ params }: { params: Promise<{ id: string }> }) {
-  await requireTeacher();
+export const meta: Route.MetaFunction = ({ data }) => [
+  { title: `${data?.student.name ?? "Student"} · Muhasabah` },
+];
 
-  const { id } = await params;
+export async function loader({ request, params }: Route.LoaderArgs) {
+  await requireTeacher(request);
 
   const [student, activePrograms] = await Promise.all([
     prisma.student.findUnique({
-      where: { id },
+      where: { id: params.id },
       include: {
         payments: { orderBy: { paidAt: "desc" } },
         enrollments: { include: { program: true } },
-        user: true,
+        user: { select: { email: true } },
         invites: { where: { acceptedAt: null }, orderBy: { createdAt: "desc" } },
       },
     }),
     prisma.program.findMany({ where: { active: true }, orderBy: { createdAt: "asc" } }),
   ]);
 
-  if (!student) notFound();
+  if (!student) throw data("Not found", { status: 404 });
 
-  const pendingInvite = student.invites.find((invite) => invite.expiresAt > new Date());
+  const pendingInvite = student.invites.find((invite) => invite.expiresAt > new Date()) ?? null;
+  const inviteUrl = pendingInvite ? `${appUrl()}/invite/${pendingInvite.token}` : null;
 
+  return { student, activePrograms, pendingInvite, inviteUrl };
+}
+
+export async function action({ request, params }: Route.ActionArgs) {
+  await requireTeacher(request);
+  const formData = await request.formData();
+  formData.set("studentId", params.id);
+  switch (formData.get("intent")) {
+    case "updatePrograms":
+      return updateStudentPrograms(formData);
+    case "invite":
+      return createInvite(formData);
+    default:
+      return { error: "Unknown action" };
+  }
+}
+
+export default function StudentProfilePage({ loaderData }: Route.ComponentProps) {
+  const { student, activePrograms, pendingInvite, inviteUrl } = loaderData;
   const { status } = getPaymentStatus(student.nextDueDate);
   const totalPaid = student.payments.reduce((sum, p) => sum + p.amount, 0);
 
@@ -100,7 +124,7 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
               accepted.
             </p>
             <p className="mt-1 break-all text-xs text-stone-500">
-              {(process.env.APP_URL ?? "http://localhost:3000") + "/invite/" + pendingInvite.token}
+              {inviteUrl}
             </p>
           </div>
         ) : (

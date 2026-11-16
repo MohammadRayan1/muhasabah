@@ -27,8 +27,8 @@
   --color-accent-circle: var(--accent-circle);
   --color-gold: var(--gold);
   --color-ledger: var(--ledger);
-  --font-sans: var(--font-nunito);
-  --font-arabic: var(--font-amiri);
+  --font-sans: "Nunito";
+  --font-arabic: "Amiri", serif;
 }
 
 /* Primary green, one step deeper than Tailwind's default so white button text

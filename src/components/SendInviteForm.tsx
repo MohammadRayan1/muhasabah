@@ -1,8 +1,5 @@
-"use client";
-
-import { useActionState } from "react";
-import { createInvite } from "@/lib/actions";
-import { initialActionState } from "@/lib/action-state";
+import { useFetcher } from "react-router";
+import type { ActionState } from "@/lib/action-state";
 import FormError from "@/components/FormError";
 
 export default function SendInviteForm({
@@ -12,11 +9,13 @@ export default function SendInviteForm({
   studentId: string;
   defaultEmail: string;
 }) {
-  const [state, formAction, pending] = useActionState(createInvite, initialActionState);
+  const fetcher = useFetcher<ActionState>();
+  const pending = fetcher.state !== "idle";
 
   return (
-    <form action={formAction} className="space-y-2">
-      <FormError message={state.error} />
+    <fetcher.Form method="post" className="space-y-2">
+      <input type="hidden" name="intent" value="invite" />
+      <FormError message={fetcher.data?.error} />
       <div className="flex items-center gap-2">
         <input type="hidden" name="studentId" value={studentId} />
         <input
@@ -35,6 +34,6 @@ export default function SendInviteForm({
           {pending ? "Sending…" : "Send Invite"}
         </button>
       </div>
-    </form>
+    </fetcher.Form>
   );
 }

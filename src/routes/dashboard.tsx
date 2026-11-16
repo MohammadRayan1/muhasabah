@@ -1,9 +1,11 @@
-import Link from "next/link";
+import { Link } from "react-router";
 import { BookOpen, Check, UserPlus } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import type { Route } from "./+types/dashboard";
+import { prisma } from "@/lib/prisma.server";
+import { requireTeacher } from "@/lib/auth/session.server";
+import { getMonthlyRevenue } from "@/lib/reports.server";
+import { recordPayment, setStudentActive } from "@/lib/mutations.server";
 import { getPaymentStatus } from "@/lib/status";
-import { requireTeacher } from "@/lib/auth/dal";
-import { getMonthlyRevenue } from "@/lib/reports";
 import StudentRow from "@/components/StudentRow";
 import MonthLedger from "@/components/MonthLedger";
 import TodayLine from "@/components/TodayLine";
@@ -11,8 +13,8 @@ import type { Program, Student } from "@/generated/prisma/client";
 
 type StudentWithPrograms = Student & { enrollments: { program: Program }[] };
 
-export default async function Home() {
-  await requireTeacher();
+export async function loader({ request }: Route.LoaderArgs) {
+  await requireTeacher(request);
 
   const [students, [month], programCount] = await Promise.all([
     prisma.student.findMany({
@@ -23,6 +25,26 @@ export default async function Home() {
     getMonthlyRevenue(1),
     prisma.program.count({ where: { active: true } }),
   ]);
+
+  return { students, month, programCount };
+}
+
+export async function action({ request }: Route.ActionArgs) {
+  await requireTeacher(request);
+  const formData = await request.formData();
+  switch (formData.get("intent")) {
+    case "recordPayment":
+      return recordPayment(formData);
+    case "removeStudent":
+      formData.set("active", "false");
+      return setStudentActive(formData);
+    default:
+      return { error: "Unknown action" };
+  }
+}
+
+export default function Home({ loaderData }: Route.ComponentProps) {
+  const { students, month, programCount } = loaderData;
 
   const overdue = students.filter((s) => getPaymentStatus(s.nextDueDate).status === "overdue");
   const dueSoon = students.filter((s) => getPaymentStatus(s.nextDueDate).status === "due_soon");
@@ -115,7 +137,7 @@ function GettingStarted({ hasPrograms }: { hasPrograms: boolean }) {
           return (
             <li key={step.href}>
               <Link
-                href={step.href}
+                to={step.href}
                 className="group flex items-center gap-4 rounded-2xl border border-stone-200 p-4 transition-colors hover:border-emerald-200 hover:bg-emerald-50"
               >
                 <span

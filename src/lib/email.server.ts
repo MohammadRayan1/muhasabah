@@ -1,4 +1,3 @@
-import "server-only";
 import { Resend } from "resend";
 
 export async function sendInviteEmail(options: {

@@ -1,6 +1,5 @@
-import Link from "next/link";
+import { Link, useFetcher } from "react-router";
 import { getPaymentStatus, type PaymentStatus } from "@/lib/status";
-import { recordPayment, setStudentActive } from "@/lib/actions";
 import { formatCurrency, formatDate } from "@/lib/format";
 import Avatar from "@/components/Avatar";
 import type { Student, Program } from "@/generated/prisma/client";
@@ -27,10 +26,13 @@ export default function StudentRow({ student }: { student: StudentWithPrograms }
   const { status, daysUntilDue } = getPaymentStatus(student.nextDueDate);
   const programs = student.enrollments.map((e) => e.program.name).join(", ");
   const amountDue = student.firstPaymentAmount ?? student.tuitionAmount;
+  const payFetcher = useFetcher();
+  const removeFetcher = useFetcher();
+  const paying = payFetcher.state !== "idle";
 
   return (
     <li className="flex flex-wrap items-center gap-x-5 gap-y-3 px-4 py-4 sm:px-5">
-      <Link href={`/students/${student.id}`} className="group flex min-w-0 flex-1 basis-56 items-center gap-3">
+      <Link to={`/students/${student.id}`} className="group flex min-w-0 flex-1 basis-56 items-center gap-3">
         <Avatar name={student.name} />
         <div className="min-w-0">
           <p className="truncate font-semibold text-stone-900 underline-offset-4 group-hover:underline">
@@ -51,7 +53,8 @@ export default function StudentRow({ student }: { student: StudentWithPrograms }
       </div>
 
       <div className="flex items-center gap-3">
-        <form action={recordPayment} className="flex items-center gap-2">
+        <payFetcher.Form method="post" action="/?index" className="flex items-center gap-2">
+          <input type="hidden" name="intent" value="recordPayment" />
           <input type="hidden" name="studentId" value={student.id} />
           <label className="relative">
             <span className="sr-only">Amount paid by {student.name}</span>
@@ -70,12 +73,14 @@ export default function StudentRow({ student }: { student: StudentWithPrograms }
           </label>
           <button
             type="submit"
-            className="h-10 rounded-xl bg-emerald-600 px-3.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
+            disabled={paying}
+            className="h-10 rounded-xl bg-emerald-600 px-3.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-60"
           >
-            Mark paid
+            {paying ? "Saving…" : "Mark paid"}
           </button>
-        </form>
-        <form action={setStudentActive}>
+        </payFetcher.Form>
+        <removeFetcher.Form method="post" action="/?index">
+          <input type="hidden" name="intent" value="removeStudent" />
           <input type="hidden" name="studentId" value={student.id} />
           <input type="hidden" name="active" value="false" />
           <button
@@ -84,7 +89,7 @@ export default function StudentRow({ student }: { student: StudentWithPrograms }
           >
             Remove
           </button>
-        </form>
+        </removeFetcher.Form>
       </div>
     </li>
   );

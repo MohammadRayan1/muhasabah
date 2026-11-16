@@ -2,7 +2,7 @@ import "dotenv/config";
 import * as readline from "node:readline";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
-import { hashPassword } from "../src/lib/auth/password";
+import { hashPassword } from "../src/lib/auth/password.server";
 
 const ENTER_CHARS = new Set(["\n", "\r"]);
 const CTRL_C = String.fromCharCode(3);

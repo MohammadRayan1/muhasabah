@@ -1,10 +1,8 @@
-"use client";
-
-import { useActionState, useMemo, useState } from "react";
-import { createStudent } from "@/lib/actions";
+import { useMemo, useState } from "react";
+import { Form, useActionData, useNavigation } from "react-router";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { calculateFirstBill, parseDateOnly, toDateInputValue } from "@/lib/dates";
-import { initialActionState } from "@/lib/action-state";
+import type { ActionState } from "@/lib/action-state";
 import { useSubmitGuard } from "@/hooks/useSubmitGuard";
 import FormError from "@/components/FormError";
 import JoinDateCalendar from "@/components/JoinDateCalendar";
@@ -14,7 +12,8 @@ const shortDate = new Intl.DateTimeFormat("en-US", { month: "short", day: "numer
 const monthName = new Intl.DateTimeFormat("en-US", { month: "long" });
 
 export default function NewStudentForm({ programs }: { programs: Program[] }) {
-  const [state, formAction, pending] = useActionState(createStudent, initialActionState);
+  const actionData = useActionData<ActionState>();
+  const pending = useNavigation().state !== "idle";
   const onSubmit = useSubmitGuard(pending);
   const [selectedProgramIds, setSelectedProgramIds] = useState<Set<string>>(new Set());
   const [tuitionAmount, setTuitionAmount] = useState("");
@@ -50,8 +49,8 @@ export default function NewStudentForm({ programs }: { programs: Program[] }) {
   const isCustomPrice = programTotal > 0 && parsedTuition !== programTotal;
 
   return (
-    <form action={formAction} onSubmit={onSubmit} className="space-y-4">
-      <FormError message={state.error} />
+    <Form method="post" onSubmit={onSubmit} className="space-y-4">
+      <FormError message={actionData?.error} />
 
       <div>
         <label htmlFor="name" className="block text-sm font-medium text-stone-700">
@@ -252,6 +251,6 @@ export default function NewStudentForm({ programs }: { programs: Program[] }) {
       >
         {pending ? "Adding…" : "Add Student"}
       </button>
-    </form>
+    </Form>
   );
 }

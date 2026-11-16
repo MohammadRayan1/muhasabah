@@ -1,18 +1,23 @@
-"use client";
-
-import { useActionState } from "react";
-import { createProgram } from "@/lib/actions";
-import { initialActionState } from "@/lib/action-state";
+import { useEffect, useRef } from "react";
+import { useFetcher } from "react-router";
+import type { ActionState } from "@/lib/action-state";
 import { useSubmitGuard } from "@/hooks/useSubmitGuard";
 import FormError from "@/components/FormError";
 
 export default function NewProgramForm() {
-  const [state, formAction, pending] = useActionState(createProgram, initialActionState);
+  const fetcher = useFetcher<ActionState>();
+  const pending = fetcher.state !== "idle";
   const onSubmit = useSubmitGuard(pending);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    if (fetcher.state === "idle" && fetcher.data?.ok) formRef.current?.reset();
+  }, [fetcher.state, fetcher.data]);
 
   return (
-    <form action={formAction} onSubmit={onSubmit} className="space-y-4">
-      <FormError message={state.error} />
+    <fetcher.Form ref={formRef} method="post" onSubmit={onSubmit} className="space-y-4">
+      <input type="hidden" name="intent" value="createProgram" />
+      <FormError message={fetcher.data?.error} />
 
       <div>
         <label htmlFor="name" className="block text-sm font-medium text-stone-700">
@@ -93,6 +98,6 @@ export default function NewProgramForm() {
       >
         {pending ? "Adding…" : "Add Program"}
       </button>
-    </form>
+    </fetcher.Form>
   );
 }

@@ -1,16 +1,38 @@
-import { prisma } from "@/lib/prisma";
-import { setProgramActive } from "@/lib/actions";
+import { Form } from "react-router";
+import type { Route } from "./+types/programs";
+import { prisma } from "@/lib/prisma.server";
+import { requireTeacher } from "@/lib/auth/session.server";
+import { createProgram, setProgramActive } from "@/lib/mutations.server";
 import { formatCurrency } from "@/lib/format";
-import { requireTeacher } from "@/lib/auth/dal";
 import NewProgramForm from "@/components/NewProgramForm";
 
-export default async function ProgramsPage() {
-  await requireTeacher();
+export const meta: Route.MetaFunction = () => [{ title: "Programs · Muhasabah" }];
 
+export async function loader({ request }: Route.LoaderArgs) {
+  await requireTeacher(request);
   const programs = await prisma.program.findMany({
     where: { active: true },
     orderBy: { createdAt: "asc" },
   });
+  return { programs };
+}
+
+export async function action({ request }: Route.ActionArgs) {
+  await requireTeacher(request);
+  const formData = await request.formData();
+  switch (formData.get("intent")) {
+    case "createProgram":
+      return createProgram(formData);
+    case "removeProgram":
+      formData.set("active", "false");
+      return setProgramActive(formData);
+    default:
+      return { error: "Unknown action" };
+  }
+}
+
+export default function ProgramsPage({ loaderData }: Route.ComponentProps) {
+  const { programs } = loaderData;
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -35,13 +57,14 @@ export default async function ProgramsPage() {
                 </p>
                 <p className="mt-1 text-sm text-stone-500">{formatCurrency(program.price)} / month</p>
               </div>
-              <form action={setProgramActive}>
+              <Form method="post">
+                <input type="hidden" name="intent" value="removeProgram" />
                 <input type="hidden" name="programId" value={program.id} />
                 <input type="hidden" name="active" value="false" />
-                <button type="submit" className="text-xs text-stone-400 hover:text-stone-600 hover:underline">
+                <button type="submit" className="text-xs text-stone-500 hover:text-red-700 hover:underline">
                   Remove
                 </button>
-              </form>
+              </Form>
             </div>
           ))}
         </div>
