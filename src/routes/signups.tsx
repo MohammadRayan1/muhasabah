@@ -89,7 +89,7 @@ export default function SignupsPage({ loaderData }: Route.ComponentProps) {
         description={t("Make a link and send it. People sign up themselves or their children, and pick a program and how many days a week. You review it here, then approve or decline.")}
       />
 
-      <section className="mb-10">
+      <section className="mb-10" data-tour="pending">
         <h2 className={sectionTitle}>
           {t("Pending approval")} <span className="font-semibold text-stone-500 tabular-nums">{waiting.length}</span>
         </h2>
@@ -106,7 +106,7 @@ export default function SignupsPage({ loaderData }: Route.ComponentProps) {
         )}
       </section>
 
-      <section id="new-link" className="mb-10 scroll-mt-6">
+      <section id="new-link" data-tour="create-link" className="mb-10 scroll-mt-6">
         <h2 className={sectionTitle}>{t("Create a registration link")}</h2>
         <NewSignupLinkForm hasPrograms={programs.length > 0} />
       </section>

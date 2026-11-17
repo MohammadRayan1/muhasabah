@@ -396,6 +396,7 @@ export default function RosterPage({ loaderData, actionData }: Route.ComponentPr
           ) : null}
           <DataTable
             key="students"
+            tour="students-table"
             columns={studentColumns}
             groups={studentGroups}
             shown={shownStudentIds}
@@ -449,6 +450,7 @@ function sortRows<T>(rows: T[], columns: Column<T>[], sort: Sort) {
 }
 
 function DataTable<T extends { id: string }>({
+  tour,
   columns,
   groups,
   shown,
@@ -458,6 +460,7 @@ function DataTable<T extends { id: string }>({
   empty,
   totals,
 }: {
+  tour?: string;
   columns: Column<T>[];
   groups: Group<T>[];
   shown: Set<string>;
@@ -474,6 +477,7 @@ function DataTable<T extends { id: string }>({
 
   return (
     <div
+      data-tour={tour}
       role="region"
       aria-label={caption}
       tabIndex={0}

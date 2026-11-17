@@ -29,6 +29,7 @@ export default function MonthLedger({
   return (
     <section
       aria-labelledby="ledger-title"
+      data-tour="ledger"
       className={`flex flex-col rounded-2xl border border-stone-200/80 bg-white p-6 shadow-[0_1px_2px_rgb(28_25_23/0.04)] ${className}`}
     >
       <h2 id="ledger-title" className="flex items-center gap-2 text-sm font-medium text-stone-500">

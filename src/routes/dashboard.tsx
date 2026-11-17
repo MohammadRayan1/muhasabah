@@ -69,7 +69,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className={pageWidth}>
-      <header className="mb-10">
+      <header className="mb-10" data-tour="today">
         <TodayHeading />
       </header>
 
@@ -83,29 +83,31 @@ export default function Home({ loaderData }: Route.ComponentProps) {
               month={month}
               counts={{ overdue: overdue.length, dueSoon: dueSoon.length, ok: ok.length }}
             />
-            <QuickCard
-              to="/payments"
-              icon={FileCheck2}
-              label={t("Payment Review")}
-              title={pendingProofs === 0 ? t("Nothing to check") : pendingProofs === 1 ? t("1 proof to check") : t("{n} proofs to check", { n: pendingProofs })}
-              attention={pendingProofs > 0}
-            />
-            <QuickCard
-              to="/signups"
-              icon={ClipboardList}
-              label={t("Registration")}
-              title={pendingFamilies === 0 ? t("No one waiting") : pendingFamilies === 1 ? t("1 awaiting approval") : t("{n} awaiting approval", { n: pendingFamilies })}
-              attention={pendingFamilies > 0}
-            />
-            <QuickCard
-              to="/roster"
-              icon={Sheet}
-              label={t("Students")}
-              title={students.length === 1 ? t("1 student") : t("{n} students", { n: students.length })}
-            />
+            <div data-tour="quick-cards" className="grid gap-4 md:col-span-3 md:grid-cols-3">
+              <QuickCard
+                to="/payments"
+                icon={FileCheck2}
+                label={t("Payment Review")}
+                title={pendingProofs === 0 ? t("Nothing to check") : pendingProofs === 1 ? t("1 proof to check") : t("{n} proofs to check", { n: pendingProofs })}
+                attention={pendingProofs > 0}
+              />
+              <QuickCard
+                to="/signups"
+                icon={ClipboardList}
+                label={t("Registration")}
+                title={pendingFamilies === 0 ? t("No one waiting") : pendingFamilies === 1 ? t("1 awaiting approval") : t("{n} awaiting approval", { n: pendingFamilies })}
+                attention={pendingFamilies > 0}
+              />
+              <QuickCard
+                to="/roster"
+                icon={Sheet}
+                label={t("Students")}
+                title={students.length === 1 ? t("1 student") : t("{n} students", { n: students.length })}
+              />
+            </div>
           </div>
 
-          <section aria-labelledby="students-title" className="overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-[0_1px_2px_rgb(28_25_23/0.04)]">
+          <section data-tour="students-list" aria-labelledby="students-title" className="overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-[0_1px_2px_rgb(28_25_23/0.04)]">
             <div className="flex items-center justify-between gap-4 border-b border-stone-100 px-5 py-4">
               <h2 id="students-title" className="flex items-center gap-2 text-base font-semibold text-stone-900">
                 <Users aria-hidden className="h-4 w-4 text-stone-400" />

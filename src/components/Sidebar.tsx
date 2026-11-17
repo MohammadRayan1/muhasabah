@@ -3,6 +3,7 @@ import {
   BellRing,
   BookOpen,
   ClipboardList,
+  Compass,
   LayoutDashboard,
   LogOut,
   Receipt,
@@ -59,9 +60,11 @@ function Mark() {
 export default function Sidebar({
   pendingSignups = 0,
   pendingProofs = 0,
+  onStartTour,
 }: {
   pendingSignups?: number;
   pendingProofs?: number;
+  onStartTour?: () => void;
 }) {
   const badges: Record<string, number> = { "/signups": pendingSignups, "/payments": pendingProofs };
   const t = useT();
@@ -130,6 +133,15 @@ export default function Sidebar({
           </div>
         </div>
         <nav className="-mx-4 mt-3 flex gap-1.5 overflow-x-auto px-4 pb-0.5">
+          <button
+            type="button"
+            onClick={onStartTour}
+            data-tour="tour-button"
+            className="order-last flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-sm font-medium text-nav-muted hover:bg-stone-100 hover:text-nav-foreground"
+          >
+            <Compass className="h-3.5 w-3.5" />
+            {t("Tour")}
+          </button>
           {[...CLASS_ITEMS, ...MONEY_ITEMS].map((it) => (
             <Link
               key={it.href}
@@ -185,7 +197,17 @@ export default function Sidebar({
           </Link>
         </div>
 
-        <Form method="post" action="/logout" className="mt-3 border-t border-nav-border pt-3">
+        <button
+          type="button"
+          onClick={onStartTour}
+          data-tour="tour-button"
+          className="mt-3 flex h-10 w-full items-center justify-between rounded-xl px-3 text-sm font-medium text-nav-foreground transition-colors hover:bg-stone-100/80"
+        >
+          {t("Take the tour")}
+          <Compass className="h-4 w-4 shrink-0 text-nav-muted" strokeWidth={1.9} />
+        </button>
+
+        <Form method="post" action="/logout" className="mt-1 border-t border-nav-border pt-1">
           <button
             type="submit"
             className="flex h-10 w-full items-center justify-between rounded-xl px-3 text-sm font-medium text-nav-muted transition-colors hover:bg-stone-100/80 hover:text-nav-foreground"

@@ -67,7 +67,7 @@ export default function RemindersPage({ loaderData }: Route.ComponentProps) {
         description={t("A kind nudge for anyone who's due this week or late. WhatsApp and text open on your own phone with the message written for you.")}
       />
 
-      <section className="mb-10">
+      <section className="mb-10" data-tour="remind">
         <h2 className={sectionTitle}>
           {t("Students to remind")} <span className="font-semibold text-stone-500 tabular-nums">{needing.length}</span>
         </h2>

@@ -26,7 +26,7 @@ export default function ReportsPage({ loaderData }: Route.ComponentProps) {
         description={t("Click a month to see exactly which payments make up its total, including from students who've since been removed.")}
       />
 
-      <div className="overflow-x-auto rounded-2xl border border-stone-200 bg-white shadow-sm shadow-stone-900/5">
+      <div data-tour="reports-table" className="overflow-x-auto rounded-2xl border border-stone-200 bg-white shadow-sm shadow-stone-900/5">
         <table className="w-full text-sm tabular-nums">
           <thead className="border-b border-stone-200 text-stone-500">
             <tr>

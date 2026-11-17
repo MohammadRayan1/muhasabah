@@ -141,7 +141,7 @@ function AddProgram({ startOpen }: { startOpen: boolean }) {
   const [open, setOpen] = useState(startOpen);
 
   return (
-    <section className="mt-10 overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-[0_1px_2px_rgb(28_25_23/0.04)]">
+    <section data-tour="add-program" className="mt-10 overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-[0_1px_2px_rgb(28_25_23/0.04)]">
       <h2>
         <button
           type="button"

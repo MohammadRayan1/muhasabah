@@ -93,7 +93,7 @@ export default function PaymentsPage({ loaderData }: Route.ComponentProps) {
         )}
       />
 
-      <section className="mb-10">
+      <section className="mb-10" data-tour="to-confirm">
         <h2 className={sectionTitle}>
           {t("To confirm")} <span className="font-semibold text-stone-500 tabular-nums">{pending.length}</span>
         </h2>

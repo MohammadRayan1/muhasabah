@@ -24,6 +24,7 @@ export default function LanguageToggle() {
       disabled={state !== "idle"}
       aria-label={next === "ar" ? "التبديل إلى العربية" : "Switch to English"}
       title={next === "ar" ? "العربية" : "English"}
+      data-tour="language"
       className="fixed end-16 top-4 z-50 flex h-10 w-10 items-center justify-center rounded-full border border-stone-200 bg-white text-stone-700 shadow-sm transition-colors hover:bg-stone-50 disabled:opacity-60 print:hidden"
     >
       {next === "ar" ? (

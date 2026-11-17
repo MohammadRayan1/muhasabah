@@ -1,5 +1,6 @@
 import { Form, Link, redirect } from "react-router";
-import { ArrowDown, CalendarDays, CheckCircle2, Clock, LogOut, MapPin, Receipt as ReceiptIcon, XCircle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowDown, CalendarDays, Compass, CheckCircle2, Clock, LogOut, MapPin, Receipt as ReceiptIcon, XCircle } from "lucide-react";
 import type { Route } from "./+types/portal";
 import { daysLabel } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma.server";
@@ -19,6 +20,8 @@ import { receiptCode } from "@/lib/reminders";
 import { formatCurrency, formatDate } from "@/lib/format";
 import FormError from "@/components/FormError";
 import Avatar from "@/components/Avatar";
+import Tour, { hasSeenTour } from "@/components/Tour";
+import { PARENT_TOUR, PARENT_TOUR_KEY } from "@/lib/tours";
 import { metaTitle, useT } from "@/lib/useT";
 
 export const meta: Route.MetaFunction = ({ matches }) => [{ title: metaTitle(matches, "Your portal") }];
@@ -83,6 +86,15 @@ export default function PortalPage({
   actionData,
 }: Route.ComponentProps) {
   const t = useT();
+  const [touring, setTouring] = useState(false);
+
+  // First visit: offer the walkthrough once (after approval, when there's something to show).
+  const hasActive = loaderData.students.some((s) => !s.pendingApproval);
+  useEffect(() => {
+    if (!hasActive || hasSeenTour(PARENT_TOUR_KEY)) return;
+    const id = window.setTimeout(() => setTouring(true), 600);
+    return () => window.clearTimeout(id);
+  }, [hasActive]);
   const { students, email, proofs, welcome } = loaderData;
 
   if (students.length === 0) {
@@ -92,7 +104,7 @@ export default function PortalPage({
           {t("Your account isn't linked to a student yet. Contact your teacher.")}
         </p>
         <div className="mt-4">
-          <LogoutButton className="text-sm text-stone-500 hover:underline" />
+          <LogoutButton className="inline-flex items-center gap-2 text-sm text-stone-500 hover:underline" />
         </div>
       </main>
     );
@@ -115,7 +127,10 @@ export default function PortalPage({
   const waitingProof = proofs.some((p) => p.status === "pending");
 
   return (
-    <main className="page-enter min-h-screen pb-16">
+    <>
+      {/* Outside the animated <main>: a transformed ancestor would pin the tour to the page, not the screen. */}
+      <Tour steps={PARENT_TOUR} storageKey={PARENT_TOUR_KEY} open={touring} onClose={() => setTouring(false)} />
+      <main className="page-enter min-h-screen pb-16">
       <header className="relative overflow-hidden bg-sidebar text-sidebar-foreground">
         <GeometricPattern className="text-sidebar-foreground opacity-[0.06]" />
         <div className="relative mx-auto max-w-2xl px-4 pt-6 pb-24 sm:px-6">
@@ -126,7 +141,19 @@ export default function PortalPage({
                 محاسبة
               </span>
             </p>
-            <LogoutButton className="inline-flex h-9 items-center gap-2 rounded-full border border-white/15 px-3.5 text-sm font-semibold text-sidebar-foreground transition-colors hover:bg-white/10" />
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setTouring(true)}
+                data-tour="tour-button"
+                className="inline-flex h-9 items-center gap-2 rounded-full border border-white/15 px-3.5 text-sm font-semibold text-sidebar-foreground transition-colors hover:bg-white/10"
+              >
+                <Compass aria-hidden className="h-4 w-4" />
+                <span className="hidden sm:inline">{t("Take the tour")}</span>
+                <span className="sm:hidden">{t("Tour")}</span>
+              </button>
+              <LogoutButton className="inline-flex h-9 items-center gap-2 rounded-full border border-white/15 px-3.5 text-sm font-semibold text-sidebar-foreground transition-colors hover:bg-white/10" />
+            </div>
           </div>
           <p className="mt-10 text-sidebar-muted">{t("Assalamu alaikum, {name}", { name: greetingName })}</p>
           <h1 className="mt-1 text-3xl font-bold sm:text-4xl">{heading}</h1>
@@ -143,7 +170,7 @@ export default function PortalPage({
         <FormError message={actionData?.error} />
 
         {active.length > 0 && next ? (
-          <section aria-labelledby="balance-title" className="rounded-3xl border border-stone-200 bg-white p-6 shadow-lg shadow-stone-900/5 sm:p-7">
+          <section data-tour="due" aria-labelledby="balance-title" className="rounded-3xl border border-stone-200 bg-white p-6 shadow-lg shadow-stone-900/5 sm:p-7">
             <h2 id="balance-title" className="text-sm font-semibold text-stone-500">
               {owedNow > 0 ? t("Due now") : t("Next bill")}
             </h2>
@@ -178,6 +205,7 @@ export default function PortalPage({
           return (
             <section
               key={student.id}
+              data-tour={student.id === students[0].id ? "child" : undefined}
               aria-labelledby={`student-${student.id}`}
               className="overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-sm shadow-stone-900/5"
             >
@@ -274,14 +302,15 @@ export default function PortalPage({
         })}
 
         {payable.length > 0 ? (
-          <section id="pay" className="scroll-mt-6 space-y-4">
+          <section id="pay" data-tour="pay" className="scroll-mt-6 space-y-4">
             <ProofUploadForm students={payable} />
             {proofs.length > 0 ? <ProofList proofs={proofs} /> : null}
           </section>
         ) : null}
 
       </div>
-    </main>
+      </main>
+    </>
   );
 }
 
