@@ -1,18 +1,10 @@
 import { randomBytes } from "node:crypto";
 import { redirect } from "react-router";
 import { prisma } from "@/lib/prisma.server";
-import {
-  nextBillingDate,
-  parseDateOnly,
-  startOfDay,
-} from "@/lib/dates";
 import { monthBounds } from "@/lib/reports.server";
 import { sendInviteEmail, sendReceiptEmail } from "@/lib/email.server";
-import { amountDue } from "@/lib/status";
 import { receiptCode } from "@/lib/reminders";
 import { formatCurrency, formatDate } from "@/lib/format";
-import { SURAHS } from "@/lib/quran";
-import type { ProgressKind } from "@/generated/prisma/client";
 import type { ActionState } from "@/lib/action-state";
 
 // Teacher mutations. Every route action calls requireTeacher(request) before these.
@@ -65,20 +57,29 @@ function parseDayOptions(formData: FormData, daysPerWeek: number) {
   return [...new Set([...picked, daysPerWeek])].sort((a, b) => a - b);
 }
 
-/** Change a program's days a week, the day counts parents can choose, and its price. */
-export async function updateProgramDays(formData: FormData): Promise<ActionState> {
+/** Edit everything about a program. Students keep the tuition they were approved at. */
+export async function updateProgram(formData: FormData): Promise<ActionState> {
   const programId = str(formData, "programId");
-  const daysPerWeek = Number(formData.get("daysPerWeek"));
+  const name = str(formData, "name");
+  const days = str(formData, "days");
+  const time = str(formData, "time");
+  const location = str(formData, "location");
   const price = Number(formData.get("price"));
+  const daysPerWeek = Number(formData.get("daysPerWeek"));
+
   if (!programId) return { error: "Missing program" };
+  if (!name) return { error: "Name is required" };
+  if (!days) return { error: "Days is required" };
+  if (!time) return { error: "Time is required" };
+  if (!location) return { error: "Location is required" };
+  if (!Number.isFinite(price) || price <= 0) return { error: "Price must be a positive number" };
   if (!Number.isInteger(daysPerWeek) || daysPerWeek < 1 || daysPerWeek > 7) {
     return { error: "Days a week must be between 1 and 7" };
   }
-  if (!Number.isFinite(price) || price <= 0) return { error: "Price must be a positive number" };
 
   await prisma.program.update({
     where: { id: programId },
-    data: { daysPerWeek, price, dayOptions: parseDayOptions(formData, daysPerWeek) },
+    data: { name, days, time, location, price, daysPerWeek, dayOptions: parseDayOptions(formData, daysPerWeek) },
   });
   return { ok: true, message: "Saved" };
 }
@@ -89,54 +90,6 @@ export async function setProgramActive(formData: FormData): Promise<ActionState>
   if (!programId) return { error: "Missing program" };
 
   await prisma.program.update({ where: { id: programId }, data: { active } });
-  return { ok: true };
-}
-
-export async function recordPayment(formData: FormData): Promise<ActionState> {
-  const studentId = str(formData, "studentId");
-  const amount = Number(formData.get("amount"));
-
-  if (!studentId) return { error: "Missing student" };
-  if (!Number.isFinite(amount) || amount <= 0) {
-    return { error: "Amount must be a positive number" };
-  }
-
-  const student = await prisma.student.findUnique({ where: { id: studentId } });
-  if (!student) return { error: "Student not found" };
-
-  const [payment] = await prisma.$transaction([
-    prisma.payment.create({ data: { studentId, amount } }),
-    prisma.student.update({
-      where: { id: studentId },
-      data: {
-        nextDueDate: nextBillingDate(student.nextDueDate),
-        firstPaymentAmount: null,
-      },
-    }),
-  ]);
-
-  return { ok: true, paymentId: payment.id };
-}
-
-/** Marks every listed sibling's current bill as paid, each for their own amount due. */
-export async function recordFamilyPayment(formData: FormData): Promise<ActionState> {
-  const familyId = str(formData, "familyId");
-  const studentIds = formData.getAll("studentIds").map(String).filter(Boolean);
-  if (!familyId || studentIds.length === 0) return { error: "Pick at least one student" };
-
-  const students = await prisma.student.findMany({
-    where: { id: { in: studentIds }, familyId, active: true },
-  });
-
-  await prisma.$transaction(
-    students.flatMap((student) => [
-      prisma.payment.create({ data: { studentId: student.id, amount: amountDue(student) } }),
-      prisma.student.update({
-        where: { id: student.id },
-        data: { nextDueDate: nextBillingDate(student.nextDueDate), firstPaymentAmount: null },
-      }),
-    ]),
-  );
   return { ok: true };
 }
 
@@ -191,7 +144,7 @@ export async function deleteFamily(formData: FormData): Promise<ActionState> {
   const familyId = str(formData, "familyId");
   // Students stay; they're just no longer grouped.
   await prisma.family.delete({ where: { id: familyId } });
-  throw redirect("/families");
+  throw redirect("/roster");
 }
 
 export async function setStudentFamily(formData: FormData): Promise<ActionState> {
@@ -199,65 +152,6 @@ export async function setStudentFamily(formData: FormData): Promise<ActionState>
   const familyId = str(formData, "familyId") || null;
   if (!studentId) return { error: "Missing student" };
   await prisma.student.update({ where: { id: studentId }, data: { familyId } });
-  return { ok: true };
-}
-
-const PROGRESS_KIND_VALUES = ["SABAQ", "SABQI", "MANZIL", "NAZRA"] as const;
-
-function optionalInt(formData: FormData, key: string) {
-  const raw = str(formData, key);
-  if (!raw) return null;
-  const n = Number(raw);
-  return Number.isInteger(n) && n >= 0 ? n : NaN;
-}
-
-export async function logProgress(formData: FormData): Promise<ActionState> {
-  const studentId = str(formData, "studentId");
-  const kind = str(formData, "kind") as ProgressKind;
-  const surah = Number(formData.get("surah"));
-  const fromAyah = optionalInt(formData, "fromAyah");
-  const toAyah = optionalInt(formData, "toAyah");
-  const quality = optionalInt(formData, "quality");
-  const mistakes = optionalInt(formData, "mistakes");
-  const note = str(formData, "note");
-  const dateStr = str(formData, "date");
-
-  if (!studentId) return { error: "Missing student" };
-  if (!PROGRESS_KIND_VALUES.includes(kind as (typeof PROGRESS_KIND_VALUES)[number])) {
-    return { error: "Pick sabaq, sabqi, manzil or nazra" };
-  }
-  if (!Number.isInteger(surah) || surah < 1 || surah > 114) return { error: "Pick a surah" };
-  const ayat = SURAHS[surah - 1].ayat;
-  for (const [label, value] of [["From ayah", fromAyah], ["To ayah", toAyah]] as const) {
-    if (Number.isNaN(value) || (value !== null && (value < 1 || value > ayat))) {
-      return { error: `${label} must be between 1 and ${ayat} for ${SURAHS[surah - 1].name}` };
-    }
-  }
-  if (fromAyah && toAyah && toAyah < fromAyah) return { error: "To ayah can't be before from ayah" };
-  if (Number.isNaN(mistakes)) return { error: "Mistakes must be a whole number" };
-  if (quality !== null && ![1, 2, 3].includes(quality)) return { error: "Pick how it went" };
-  if (dateStr && !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return { error: "Pick a valid date" };
-
-  await prisma.progressEntry.create({
-    data: {
-      studentId,
-      kind,
-      surah,
-      fromAyah,
-      toAyah: toAyah ?? fromAyah,
-      quality,
-      mistakes,
-      note: note || null,
-      date: dateStr ? parseDateOnly(dateStr) : startOfDay(new Date()),
-    },
-  });
-  return { ok: true };
-}
-
-export async function deleteProgress(formData: FormData): Promise<ActionState> {
-  const entryId = str(formData, "entryId");
-  const studentId = str(formData, "studentId");
-  await prisma.progressEntry.deleteMany({ where: { id: entryId, studentId } });
   return { ok: true };
 }
 

@@ -1,11 +1,21 @@
+import type { CSSProperties } from "react";
+
 // Shared class strings so new screens match the existing ones.
-export const card = "rounded-2xl border border-stone-200 bg-white p-4 shadow-sm shadow-stone-900/5";
+/** Quiet surface: hairline border, barely-there shadow. */
+export const card = "rounded-2xl border border-stone-200/80 bg-white p-5 shadow-[0_1px_2px_rgb(28_25_23/0.04)]";
 export const input =
-  "mt-1 h-11 w-full rounded-xl border border-stone-300 bg-white px-3 text-sm text-stone-900 outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/15";
+  "mt-1.5 h-11 w-full rounded-xl border border-stone-200 bg-white px-3.5 text-sm text-stone-900 shadow-[0_1px_2px_rgb(28_25_23/0.04)] outline-none transition-[border-color,box-shadow] placeholder:text-stone-400 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/12";
 export const label = "block text-sm font-medium text-stone-700";
 export const primaryButton =
-  "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-60";
+  "inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.12),0_1px_2px_rgb(15_59_44/0.25)] transition-colors hover:bg-emerald-700 disabled:opacity-60";
 export const secondaryButton =
-  "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-stone-300 bg-white px-4 text-sm font-semibold text-stone-700 transition-colors hover:bg-stone-50 disabled:opacity-60";
-export const sectionTitle = "mb-3 text-lg font-bold text-stone-900";
-export const pageTitle = "text-2xl font-bold text-stone-900";
+  "inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-stone-200 bg-white px-4 text-sm font-semibold text-stone-700 shadow-[0_1px_2px_rgb(28_25_23/0.04)] transition-colors hover:bg-stone-50 disabled:opacity-60";
+export const sectionTitle = "mb-3 text-base font-semibold text-stone-900";
+export const pageTitle = "text-[2rem] leading-tight font-semibold text-stone-900 sm:text-[2.25rem]";
+/** Every teacher page shares one column, so the left edge never jumps between pages. */
+export const pageWidth = "mx-auto w-full max-w-5xl";
+
+/** Stagger for the `.rise` entrance: the nth block on a page arrives n × 70ms later. */
+export function stagger(i: number) {
+  return { "--i": i } as CSSProperties;
+}

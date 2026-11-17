@@ -79,6 +79,21 @@ export async function approveSignup(formData: FormData): Promise<ActionState> {
     );
   }
   await prisma.$transaction(updates);
+
+  // "Just me" sign-ups get a stand-in family only so they can be reviewed as one
+  // group. Once approved the person is simply a student, so the stand-in goes.
+  const family = await prisma.family.findUnique({ where: { id: familyId } });
+  const solo = pending.length === 1 && family && !family.guardianName && family.name === pending[0].name;
+  if (solo) {
+    const others = await prisma.student.count({ where: { familyId, id: { not: pending[0].id } } });
+    if (others === 0) {
+      await prisma.$transaction([
+        prisma.student.update({ where: { id: pending[0].id }, data: { familyId: null } }),
+        prisma.signupLink.updateMany({ where: { familyId }, data: { familyId: null } }),
+        prisma.family.delete({ where: { id: familyId } }),
+      ]);
+    }
+  }
   return { ok: true };
 }
 
@@ -105,7 +120,7 @@ type SubmitResult = { error: string } | { userId: string };
 
 export async function submitSignup(token: string, formData: FormData): Promise<SubmitResult> {
   const open = await findOpenLink(token);
-  if (!open) return { error: "This sign-up link has already been used or has expired. Ask your teacher for a new one." };
+  if (!open) return { error: "This registration link has already been used or has expired. Ask your teacher for a new one." };
   const { link, programs } = open;
 
   const guardianName = str(formData, "guardianName");
@@ -210,7 +225,7 @@ export async function submitSignup(token: string, formData: FormData): Promise<S
     return { userId };
   } catch (error) {
     if (error instanceof Error && error.message === "LINK_USED") {
-      return { error: "This sign-up link has just been used. Ask your teacher for a new one." };
+      return { error: "This registration link has just been used. Ask your teacher for a new one." };
     }
     throw error;
   }

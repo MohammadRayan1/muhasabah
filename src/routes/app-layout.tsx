@@ -1,4 +1,4 @@
-import { Outlet } from "react-router";
+import { Outlet, useLocation } from "react-router";
 import type { Route } from "./+types/app-layout";
 import { requireTeacher } from "@/lib/auth/session.server";
 import { prisma } from "@/lib/prisma.server";
@@ -14,11 +14,15 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export default function AppLayout({ loaderData }: Route.ComponentProps) {
+  const { pathname } = useLocation();
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
       <Sidebar pendingSignups={loaderData.pendingFamilies} pendingProofs={loaderData.pendingProofs} />
       <main className="min-w-0 flex-1 px-4 py-8 sm:px-8 sm:py-10">
-        <Outlet />
+        {/* Keyed by page so each new page settles in; form posts on the same page don't replay it. */}
+        <div key={pathname} className="page-enter">
+          <Outlet />
+        </div>
       </main>
     </div>
   );

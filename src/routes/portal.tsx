@@ -1,5 +1,5 @@
 import { Form, Link, redirect } from "react-router";
-import { CheckCircle2, Clock, XCircle } from "lucide-react";
+import { ArrowDown, CalendarDays, CheckCircle2, Clock, LogOut, MapPin, Receipt as ReceiptIcon, XCircle } from "lucide-react";
 import type { Route } from "./+types/portal";
 import { daysLabel } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma.server";
@@ -8,6 +8,7 @@ import { visibleStudentIds } from "@/lib/access.server";
 import { submitProof } from "@/lib/proofs.server";
 import { paymentMethodLabel } from "@/lib/proofs";
 import ProofUploadForm from "@/components/ProofUploadForm";
+import GeometricPattern from "@/components/GeometricPattern";
 import {
   amountDue,
   getPaymentStatus,
@@ -17,8 +18,7 @@ import {
 import { receiptCode } from "@/lib/reminders";
 import { formatCurrency, formatDate } from "@/lib/format";
 import FormError from "@/components/FormError";
-import { ProgressList, ProgressSummary } from "@/components/ProgressLog";
-import { card } from "@/components/ui";
+import Avatar from "@/components/Avatar";
 import { metaTitle, useT } from "@/lib/useT";
 
 export const meta: Route.MetaFunction = ({ matches }) => [{ title: metaTitle(matches, "Your portal") }];
@@ -39,13 +39,9 @@ export async function loader({ request }: Route.LoaderArgs) {
     where: { id: { in: ids } },
     orderBy: { name: "asc" },
     include: {
-      family: { select: { name: true } },
+      family: { select: { name: true, guardianName: true } },
       payments: { orderBy: { paidAt: "desc" } },
       enrollments: { include: { program: true } },
-      progress: {
-        orderBy: [{ date: "desc" }, { createdAt: "desc" }],
-        take: 15,
-      },
     },
   });
 
@@ -75,6 +71,7 @@ function LogoutButton({ className }: { className: string }) {
   return (
     <Form method="post" action="/logout">
       <button type="submit" className={className}>
+        <LogOut aria-hidden className="h-4 w-4 rtl:-scale-x-100" strokeWidth={2} />
         {t("Log out")}
       </button>
     </Form>
@@ -101,208 +98,188 @@ export default function PortalPage({
     );
   }
 
-  const familyName = students[0].family?.name;
-  const payable = students
-    .filter((s) => !s.pendingApproval)
-    .map((s) => ({
-      id: s.id,
-      name: s.name,
-      due: amountDue(s),
-      overdueOrSoon: getPaymentStatus(s.nextDueDate).status !== "ok",
-    }));
+  const family = students[0].family;
+  const heading = students.length > 1 && family?.name ? family.name : students[0].name;
+  const greetingName = family?.guardianName?.split(" ")[0] ?? students[0].name.split(" ")[0];
+  const active = students.filter((s) => !s.pendingApproval);
+  const payable = active.map((s) => ({
+    id: s.id,
+    name: s.name,
+    due: amountDue(s),
+    overdueOrSoon: getPaymentStatus(s.nextDueDate).status !== "ok",
+  }));
+  const dueNow = active.filter((s) => getPaymentStatus(s.nextDueDate).status !== "ok");
+  const owedNow = dueNow.reduce((sum, s) => sum + amountDue(s), 0);
+  const next = [...active].sort((a, b) => new Date(a.nextDueDate).getTime() - new Date(b.nextDueDate).getTime())[0];
+  const overdue = dueNow.some((s) => getPaymentStatus(s.nextDueDate).status === "overdue");
+  const waitingProof = proofs.some((p) => p.status === "pending");
 
   return (
-    <main className="mx-auto max-w-2xl px-4 py-10">
-      <div className="mb-8 flex items-start justify-between gap-4 pe-28">
-        <div>
-          <p className="mb-1 text-sm font-medium text-emerald-700">
-            Muhasabah{" "}
-            <span lang="ar">
-              محاسبة
-            </span>
-          </p>
-          <h1 className="text-2xl font-bold text-stone-900">
-            {students.length > 1 && familyName ? familyName : students[0].name}
-          </h1>
-          <p className="text-sm text-stone-500">{email}</p>
+    <main className="page-enter min-h-screen pb-16">
+      <header className="relative overflow-hidden bg-sidebar text-sidebar-foreground">
+        <GeometricPattern className="text-sidebar-foreground opacity-[0.06]" />
+        <div className="relative mx-auto max-w-2xl px-4 pt-6 pb-24 sm:px-6">
+          <div className="flex items-center justify-between gap-4 pe-24">
+            <p className="flex items-baseline gap-2 text-sm font-semibold text-sidebar-muted">
+              Muhasabah
+              <span lang="ar" className="font-arabic text-base font-normal text-gold">
+                محاسبة
+              </span>
+            </p>
+            <LogoutButton className="inline-flex h-9 items-center gap-2 rounded-full border border-white/15 px-3.5 text-sm font-semibold text-sidebar-foreground transition-colors hover:bg-white/10" />
+          </div>
+          <p className="mt-10 text-sidebar-muted">{t("Assalamu alaikum, {name}", { name: greetingName })}</p>
+          <h1 className="mt-1 text-3xl font-bold sm:text-4xl">{heading}</h1>
+          <p className="mt-1 text-sm text-sidebar-muted">{email}</p>
         </div>
-        <LogoutButton className="pt-1 text-sm text-stone-500 hover:text-stone-700 hover:underline" />
-      </div>
+      </header>
 
-      {welcome ? (
-        <p className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
-          {t("JazakAllahu khayran for signing up! Your teacher will confirm soon. Once they do, bills and progress show up here.")}
-        </p>
-      ) : null}
-      <FormError message={actionData?.error} />
+      <div className="relative mx-auto -mt-16 max-w-2xl space-y-8 px-4 sm:px-6">
+        {welcome ? (
+          <p className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm leading-relaxed text-emerald-700 shadow-sm">
+            {t("JazakAllahu khayran for registering! Your teacher will review it soon. Once approved, your bills and receipts will appear here.")}
+          </p>
+        ) : null}
+        <FormError message={actionData?.error} />
 
-      {payable.length > 0 ? (
-        <section className="mb-10 space-y-4">
-          <ProofUploadForm students={payable} />
-          {proofs.length > 0 ? <ProofList proofs={proofs} /> : null}
-        </section>
-      ) : null}
+        {active.length > 0 && next ? (
+          <section aria-labelledby="balance-title" className="rounded-3xl border border-stone-200 bg-white p-6 shadow-lg shadow-stone-900/5 sm:p-7">
+            <h2 id="balance-title" className="text-sm font-semibold text-stone-500">
+              {owedNow > 0 ? t("Due now") : t("Next bill")}
+            </h2>
+            <p className="mt-1 text-4xl font-bold text-stone-900 tabular-nums">
+              {formatCurrency(owedNow > 0 ? owedNow : amountDue(next))}
+            </p>
+            <p className={`mt-2 text-sm font-medium ${overdue ? "text-red-700" : owedNow > 0 ? "text-amber-700" : "text-stone-600"}`}>
+              {owedNow > 0
+                ? overdue
+                  ? t("Past due. Please pay your teacher and send the proof below.")
+                  : t("Due {date}. Pay your teacher, then send the proof below.", { date: formatDate(dueNow[0].nextDueDate) })
+                : t("Due {date}. Nothing to pay yet.", { date: formatDate(next.nextDueDate) })}
+            </p>
+            {waitingProof ? (
+              <p className="mt-4 flex items-center gap-2 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-700">
+                <Clock aria-hidden className="h-4 w-4 shrink-0" />
+                {t("Your proof is with your teacher. It moves to your history once confirmed.")}
+              </p>
+            ) : owedNow > 0 ? (
+              <a href="#pay" className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-emerald-700">
+                {t("Send payment proof")}
+                <ArrowDown aria-hidden className="h-4 w-4" />
+              </a>
+            ) : null}
+          </section>
+        ) : null}
 
-      <div className="space-y-12">
         {students.map((student) => {
           const { status } = getPaymentStatus(student.nextDueDate);
-          const totalPaid = student.payments.reduce(
-            (sum, p) => sum + p.amount,
-            0,
-          );
+          const totalPaid = student.payments.reduce((sum, p) => sum + p.amount, 0);
 
           return (
-            <section key={student.id} aria-labelledby={`student-${student.id}`}>
-              {students.length > 1 ? (
-                <h2
-                  id={`student-${student.id}`}
-                  className="mb-3 text-xl font-bold text-stone-900"
-                >
-                  {student.name}
-                </h2>
-              ) : (
-                <h2 id={`student-${student.id}`} className="sr-only">
-                  {student.name}
-                </h2>
-              )}
+            <section
+              key={student.id}
+              aria-labelledby={`student-${student.id}`}
+              className="overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-sm shadow-stone-900/5"
+            >
+              <div className="flex items-center gap-4 border-b border-stone-100 px-6 py-5">
+                <Avatar name={student.name} />
+                <div className="min-w-0 flex-1">
+                  <h2 id={`student-${student.id}`} className="truncate text-lg font-bold text-stone-900">
+                    {student.name}
+                  </h2>
+                  {student.pendingApproval ? (
+                    <p className="text-sm text-amber-700">{t("Waiting for your teacher to confirm")}</p>
+                  ) : (
+                    <p className="text-sm text-stone-500 tabular-nums">
+                      {t("{amount}/month", { amount: formatCurrency(student.tuitionAmount) })} ·{" "}
+                      {t("{amount} paid so far", { amount: formatCurrency(totalPaid) })}
+                    </p>
+                  )}
+                </div>
+                {student.pendingApproval ? null : (
+                  <span className={`shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${STATUS_BADGE_STYLES[status]}`}>
+                    {t(STATUS_LABEL[status])}
+                  </span>
+                )}
+              </div>
+
+              {student.enrollments.length > 0 ? (
+                <ul className="divide-y divide-stone-100">
+                  {student.enrollments.map((enrollment) => (
+                    <li key={enrollment.id} className="px-6 py-4">
+                      <p className="font-semibold text-stone-900">
+                        {enrollment.program.name}
+                        {enrollment.daysPerWeek ? (
+                          <span className="ms-2 text-sm font-normal text-stone-500">{t(daysLabel(enrollment.daysPerWeek))}</span>
+                        ) : null}
+                      </p>
+                      <p className="mt-1.5 flex flex-wrap gap-x-5 gap-y-1 text-sm text-stone-600">
+                        <span className="inline-flex items-center gap-1.5">
+                          <CalendarDays aria-hidden className="h-4 w-4 text-stone-400" />
+                          {enrollment.program.days}
+                        </span>
+                        <span className="inline-flex items-center gap-1.5">
+                          <Clock aria-hidden className="h-4 w-4 text-stone-400" />
+                          {enrollment.program.time}
+                        </span>
+                        {enrollment.program.location ? (
+                          <span className="inline-flex items-center gap-1.5">
+                            <MapPin aria-hidden className="h-4 w-4 text-stone-400" />
+                            {enrollment.program.location}
+                          </span>
+                        ) : null}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
 
               {student.pendingApproval ? (
-                <div className={`${card} border-amber-200 bg-amber-50`}>
-                  <p className="font-semibold text-amber-700">
-                    {t("Waiting for your teacher to confirm")}
-                  </p>
-                  <p className="mt-1 text-sm text-stone-600">
-                    {t("Starting {date}", { date: formatDate(student.joinedAt) })} ·{" "}
-                    {student.enrollments
-                      .map((e) => `${e.program.name}, ${t(daysLabel(e.daysPerWeek ?? e.program.daysPerWeek))}`)
-                      .join(" · ")}
-                  </p>
-                </div>
+                <p className="bg-amber-50/60 px-6 py-4 text-sm text-stone-600">
+                  {t("Starting {date}", { date: formatDate(student.joinedAt) })}
+                </p>
               ) : (
-                <>
-                  <div
-                    className={`${card} mb-6 flex flex-wrap items-center justify-between gap-4`}
-                  >
-                    <div>
-                      <p className="text-sm text-stone-500">{t("Next bill")}</p>
-                      <p className="text-2xl font-bold text-stone-900 tabular-nums">
-                        {formatCurrency(amountDue(student))}
-                        <span className="ms-2 text-base font-medium text-stone-500">
-                          {t("due {date}", { date: formatDate(student.nextDueDate) })}
-                        </span>
-                      </p>
-                      <span
-                        className={`mt-1 inline-block rounded-full border px-2 py-0.5 text-xs font-medium ${STATUS_BADGE_STYLES[status]}`}
-                      >
-                        {t(STATUS_LABEL[status])}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="mb-6 grid grid-cols-2 gap-4">
-                    <div className={card}>
-                      <p className="text-lg font-semibold text-stone-900">
-                        {formatCurrency(student.tuitionAmount)}
-                      </p>
-                      <p className="text-sm text-stone-500">{t("Tuition / month")}</p>
-                    </div>
-                    <div className={card}>
-                      <p className="text-lg font-semibold text-stone-900">
-                        {formatCurrency(totalPaid)}
-                      </p>
-                      <p className="text-sm text-stone-500">{t("Total paid")}</p>
-                    </div>
-                  </div>
-
-                  {student.enrollments.length > 0 ? (
-                    <div className="mb-6">
-                      <h3 className="mb-2 font-bold text-stone-900">
-                        {t("Programs")}
-                      </h3>
-                      <div className="space-y-2">
-                        {student.enrollments.map((enrollment) => (
-                          <div key={enrollment.id} className={card}>
-                            <p className="font-medium text-stone-900">
-                              {enrollment.program.name}
-                              {enrollment.daysPerWeek ? (
-                                <span className="ms-2 text-sm font-normal text-stone-500">
-                                  {t(daysLabel(enrollment.daysPerWeek))}
-                                </span>
-                              ) : null}
-                            </p>
-                            <p className="text-sm text-stone-500">
-                              {enrollment.program.days} ·{" "}
-                              {enrollment.program.time} ·{" "}
-                              {enrollment.program.location}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {student.progress.length > 0 ? (
-                    <div className="mb-6">
-                      <h3 className="mb-2 font-bold text-stone-900">
-                        {t("Quran progress")}
-                      </h3>
-                      <ProgressSummary entries={student.progress} />
-                      <ProgressList entries={student.progress} />
-                    </div>
-                  ) : null}
-
-                  <h3 className="mb-2 font-bold text-stone-900">
-                    {t("Payment history")}
-                  </h3>
+                <div className="border-t border-stone-100 bg-stone-50/60 px-6 py-4">
+                  <h3 className="mb-2 text-sm font-semibold text-stone-500">{t("Payment history")}</h3>
                   {student.payments.length === 0 ? (
-                    <p className="text-sm text-stone-500">
-                      {t("No payments recorded yet.")}
-                    </p>
+                    <p className="text-sm text-stone-500">{t("No payments recorded yet.")}</p>
                   ) : (
-                    <div className="overflow-x-auto rounded-2xl border border-stone-200 bg-white shadow-sm shadow-stone-900/5">
-                      <table className="w-full text-sm">
-                        <thead className="bg-stone-50 text-start text-stone-500">
-                          <tr>
-                            <th className="px-4 py-2 font-medium">{t("Date")}</th>
-                            <th className="px-4 py-2 text-end font-medium">
-                              {t("Amount")}
-                            </th>
-                            <th className="px-4 py-2 text-end font-medium">
-                              {t("Receipt")}
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-stone-200">
-                          {student.payments.map((payment) => (
-                            <tr key={payment.id}>
-                              <td className="px-4 py-3 text-stone-900">
-                                {formatDate(payment.paidAt)}
-                              </td>
-                              <td className="px-4 py-3 text-end text-stone-700">
-                                {formatCurrency(payment.amount)}
-                                {payment.method !== "manual" ? (
-                                  <span className="block text-xs text-stone-500">{t(paymentMethodLabel(payment.method))}</span>
-                                ) : null}
-                              </td>
-                              <td className="px-4 py-3 text-end">
-                                <Link
-                                  to={`/receipts/${payment.id}`}
-                                  className="text-emerald-700 hover:underline"
-                                >
-                                  {receiptCode(payment.receiptNumber)}
-                                </Link>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                    <ul className="space-y-1">
+                      {student.payments.map((payment) => (
+                        <li key={payment.id} className="flex items-center justify-between gap-3 py-1.5 text-sm">
+                          <span className="text-stone-700">
+                            {formatDate(payment.paidAt)}
+                            {payment.method !== "manual" ? (
+                              <span className="text-stone-500"> · {t(paymentMethodLabel(payment.method))}</span>
+                            ) : null}
+                          </span>
+                          <span className="flex items-center gap-4">
+                            <span className="font-semibold text-stone-900 tabular-nums">{formatCurrency(payment.amount)}</span>
+                            <Link
+                              to={`/receipts/${payment.id}`}
+                              className="inline-flex items-center gap-1 font-semibold text-emerald-700 hover:underline"
+                            >
+                              <ReceiptIcon aria-hidden className="h-3.5 w-3.5" />
+                              {receiptCode(payment.receiptNumber)}
+                            </Link>
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
                   )}
-                </>
+                </div>
               )}
             </section>
           );
         })}
+
+        {payable.length > 0 ? (
+          <section id="pay" className="scroll-mt-6 space-y-4">
+            <ProofUploadForm students={payable} />
+            {proofs.length > 0 ? <ProofList proofs={proofs} /> : null}
+          </section>
+        ) : null}
+
       </div>
     </main>
   );
@@ -315,8 +292,8 @@ function ProofList({ proofs }: { proofs: ProofRow[] }) {
   const t = useT();
   return (
     <div>
-      <h3 className="mb-2 font-bold text-stone-900">{t("Proofs you've sent")}</h3>
-      <ul className="divide-y divide-stone-200 rounded-2xl border border-stone-200 bg-white shadow-sm shadow-stone-900/5">
+      <h3 className="mb-3 mt-8 text-lg font-bold text-stone-900">{t("Submitted payment proofs")}</h3>
+      <ul className="divide-y divide-stone-100 rounded-3xl border border-stone-200 bg-white px-2 shadow-sm shadow-stone-900/5">
         {proofs.map((p) => (
           <li key={p.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 text-sm">
             {p.status === "approved" ? (

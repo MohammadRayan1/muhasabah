@@ -9,6 +9,8 @@ import {
 import type { Route } from "./+types/root";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageToggle from "@/components/LanguageToggle";
+import NavProgress from "@/components/NavProgress";
+import FontSwitcher from "@/components/FontSwitcher";
 import { THEME_STORAGE_KEY } from "@/lib/theme";
 import { langFromCookie, setCurrentLang } from "@/lib/i18n";
 import { useLang, useT } from "@/lib/useT";
@@ -20,9 +22,9 @@ export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
   {
     rel: "stylesheet",
-    // Nunito for the interface, Tajawal for Arabic text in it, and Amiri, a classical
+    // Inter for the interface, Tajawal for Arabic text in it, and Amiri, a classical
     // naskh, for the Arabic wordmark and Bismillah.
-    href: "https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Nunito:wght@400..800&family=Tajawal:wght@400;500;700;800&display=swap",
+    href: "https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Inter:wght@400..700&family=Tajawal:wght@400;500;700;800&display=swap",
   },
 ];
 
@@ -57,6 +59,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         {children}
         <LanguageToggle />
         <ThemeToggle />
+        {import.meta.env.DEV ? <FontSwitcher /> : null}
         <ScrollRestoration />
         <Scripts />
       </body>
@@ -65,7 +68,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  return <Outlet />;
+  return (
+    <>
+      <NavProgress />
+      <Outlet />
+    </>
+  );
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {

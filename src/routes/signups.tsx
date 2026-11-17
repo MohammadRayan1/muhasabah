@@ -13,10 +13,11 @@ import FormError from "@/components/FormError";
 import NewSignupLinkForm from "@/components/NewSignupLinkForm";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import Arrow from "@/components/Arrow";
-import { card, input, pageTitle, primaryButton, sectionTitle } from "@/components/ui";
+import PageHeader from "@/components/PageHeader";
+import { card, input, primaryButton, sectionTitle, pageWidth } from "@/components/ui";
 import { metaTitle, useT } from "@/lib/useT";
 
-export const meta: Route.MetaFunction = ({ matches }) => [{ title: metaTitle(matches, "Sign-ups") }];
+export const meta: Route.MetaFunction = ({ matches }) => [{ title: metaTitle(matches, "Registration") }];
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireTeacher(request);
@@ -82,19 +83,19 @@ export default function SignupsPage({ loaderData }: Route.ComponentProps) {
   const { waiting, links, programs } = loaderData;
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <h1 className={pageTitle}>{t("Sign-ups")}</h1>
-      <p className="mt-1 mb-8 max-w-prose text-sm text-stone-500">
-        {t("Make a link and send it. People sign up themselves or their children, and pick a program and how many days a week. You review it here, then approve or decline.")}
-      </p>
+    <div className={pageWidth}>
+      <PageHeader
+        title={t("Registration")}
+        description={t("Make a link and send it. People sign up themselves or their children, and pick a program and how many days a week. You review it here, then approve or decline.")}
+      />
 
       <section className="mb-10">
         <h2 className={sectionTitle}>
-          {t("Waiting for you")} <span className="font-semibold text-stone-500 tabular-nums">{waiting.length}</span>
+          {t("Pending approval")} <span className="font-semibold text-stone-500 tabular-nums">{waiting.length}</span>
         </h2>
         {waiting.length === 0 ? (
           <p className={`${card} flex items-center gap-2 text-sm text-stone-500`}>
-            <UserCheck className="h-5 w-5 text-stone-400" /> {t("No new sign-ups right now.")}
+            <UserCheck className="h-5 w-5 text-stone-400" /> {t("No registrations awaiting approval.")}
           </p>
         ) : (
           <div className="space-y-4">
@@ -106,13 +107,13 @@ export default function SignupsPage({ loaderData }: Route.ComponentProps) {
       </section>
 
       <section id="new-link" className="mb-10 scroll-mt-6">
-        <h2 className={sectionTitle}>{t("Make a sign-up link")}</h2>
+        <h2 className={sectionTitle}>{t("Create a registration link")}</h2>
         <NewSignupLinkForm hasPrograms={programs.length > 0} />
       </section>
 
       {links.length > 0 ? (
         <section>
-          <h2 className={sectionTitle}>{t("Your links")}</h2>
+          <h2 className={sectionTitle}>{t("Past registration links")}</h2>
           <ul className="divide-y divide-stone-200 rounded-2xl border border-stone-200 bg-white shadow-sm shadow-stone-900/5">
             {links.map((link) => {
               const status = linkStatus(link, t);
@@ -121,7 +122,7 @@ export default function SignupsPage({ loaderData }: Route.ComponentProps) {
               return (
                 <li key={link.id} className="space-y-2 px-4 py-3 sm:px-5">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="font-semibold text-stone-900">{link.label || t("Sign-up link")}</p>
+                    <p className="font-semibold text-stone-900">{link.label || t("Registration link")}</p>
                     <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${status.style}`}>{status.text}</span>
                   </div>
                   {link.programNames.length > 0 ? (
@@ -255,7 +256,7 @@ function PendingFamily({ family, students }: PendingProps) {
           value="decline"
           disabled={busy}
           onClick={(e) => {
-            if (!window.confirm(t("Decline {name}? Their sign-up and login will be removed.", { name: family.name }))) e.preventDefault();
+            if (!window.confirm(t("Decline {name}? Their registration and login will be removed.", { name: family.name }))) e.preventDefault();
           }}
           className="min-h-11 rounded-xl px-3 text-sm font-semibold text-stone-500 hover:text-red-700"
         >

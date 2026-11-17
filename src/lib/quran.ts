@@ -1,4 +1,3 @@
-import { currentLang } from "@/lib/i18n";
 /** The 114 surahs: transliterated name, Arabic name, and number of ayat. */
 export const SURAHS: { name: string; arabic: string; ayat: number }[] = [
   { name: "Al-Fatihah", arabic: "الفاتحة", ayat: 7 },
@@ -117,32 +116,3 @@ export const SURAHS: { name: string; arabic: string; ayat: number }[] = [
   { name: "An-Nas", arabic: "الناس", ayat: 6 },
 ];
 
-export const PROGRESS_KINDS = {
-  SABAQ: { label: "Sabaq", hint: "New lesson" },
-  SABQI: { label: "Sabqi", hint: "Recent revision" },
-  MANZIL: { label: "Manzil", hint: "Older revision (dhor)" },
-  NAZRA: { label: "Nazra", hint: "Reading" },
-} as const;
-
-export type ProgressKindKey = keyof typeof PROGRESS_KINDS;
-
-export const QUALITY_LABELS: Record<number, string> = {
-  3: "Excellent",
-  2: "Good",
-  1: "Needs work",
-};
-
-/** "Al-Mulk 1–15", "Al-Mulk 7", or just "Al-Mulk". */
-export function describePassage(surah: number, fromAyah: number | null, toAyah: number | null) {
-  const s = SURAHS[surah - 1];
-  if (currentLang() === "ar") {
-    const name = s ? `${surah}. سورة ${s.arabic}` : `سورة ${surah}`;
-    if (fromAyah && toAyah && toAyah !== fromAyah) return `${name}، الآيات ${fromAyah}–${toAyah}`;
-    if (fromAyah) return `${name}، الآية ${fromAyah}`;
-    return name;
-  }
-  const name = s ? `${surah}. ${s.name}` : `Surah ${surah}`;
-  if (fromAyah && toAyah && toAyah !== fromAyah) return `${name} ${fromAyah}–${toAyah}`;
-  if (fromAyah) return `${name} ${fromAyah}`;
-  return name;
-}

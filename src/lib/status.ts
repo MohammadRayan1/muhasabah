@@ -12,8 +12,8 @@ export const STATUS_BADGE_STYLES: Record<PaymentStatus, string> = {
 
 export const STATUS_LABEL: Record<PaymentStatus, string> = {
   overdue: "Overdue",
-  due_soon: "Due soon",
-  ok: "On track",
+  due_soon: "Due this week",
+  ok: "Upcoming",
 };
 
 export function getPaymentStatus(

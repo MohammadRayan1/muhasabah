@@ -5,7 +5,6 @@ import { prisma } from "@/lib/prisma.server";
 import { requireTeacher } from "@/lib/auth/session.server";
 import {
   deleteFamily,
-  recordFamilyPayment,
   setStudentFamily,
   updateFamily,
 } from "@/lib/mutations.server";
@@ -18,7 +17,7 @@ import FormError from "@/components/FormError";
 import Arrow from "@/components/Arrow";
 import RemindMenu from "@/components/RemindMenu";
 import Avatar from "@/components/Avatar";
-import { card, input, pageTitle, primaryButton, secondaryButton, sectionTitle } from "@/components/ui";
+import { card, input, pageTitle, primaryButton, secondaryButton, sectionTitle, pageWidth } from "@/components/ui";
 import { useT } from "@/lib/useT";
 
 export const meta: Route.MetaFunction = ({ data }) => [
@@ -49,8 +48,6 @@ export async function action({ request, params }: Route.ActionArgs) {
   switch (formData.get("intent")) {
     case "update":
       return updateFamily(formData);
-    case "pay":
-      return recordFamilyPayment(formData);
     case "addStudent":
       return setStudentFamily(formData);
     case "removeStudent":
@@ -74,9 +71,9 @@ export default function FamilyPage({ loaderData }: Route.ComponentProps) {
   const monthly = students.reduce((sum, s) => sum + s.tuitionAmount, 0);
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <Link to="/families" className="text-sm text-stone-500 hover:underline">
-        <Arrow back /> {t("All families")}
+    <div className={pageWidth}>
+      <Link to="/roster" className="text-sm text-stone-500 hover:underline">
+        <Arrow back /> {t("Students")}
       </Link>
       <div className="mt-3 mb-6 flex flex-wrap items-baseline justify-between gap-3">
         <h1 className={pageTitle}>{family.name}</h1>
@@ -91,12 +88,7 @@ export default function FamilyPage({ loaderData }: Route.ComponentProps) {
         {students.length === 0 ? (
           <p className={`${card} text-sm text-stone-500`}>{t("No students in this family yet. Add one below.")}</p>
         ) : (
-          <FamilyPayForm
-            // A new key after any due date moves resets the ticks, so a payment can't be recorded twice by accident.
-            key={students.map((st) => st.nextDueDate.toISOString()).join()}
-            students={students}
-            canEmail={canEmail}
-          />
+          <FamilyChildren students={students} canEmail={canEmail} />
         )}
 
         {others.length > 0 ? (
@@ -143,7 +135,7 @@ export default function FamilyPage({ loaderData }: Route.ComponentProps) {
 
       {students.length > 0 ? (
         <section className="mb-10">
-          <h2 className={sectionTitle}>{t("Take a student out of this family")}</h2>
+          <h2 className={sectionTitle}>{t("Remove a student from this family")}</h2>
           <div className="flex flex-wrap gap-2">
             {students.map((s) => (
               <Form method="post" key={s.id}>
@@ -186,36 +178,13 @@ type PayStudent = Parameters<typeof RemindMenu>[0]["student"] & {
   status: PaymentStatus;
 };
 
-function FamilyPayForm({ students, canEmail }: { students: PayStudent[]; canEmail: boolean }) {
+function FamilyChildren({ students, canEmail }: { students: PayStudent[]; canEmail: boolean }) {
   const t = useT();
-  const [selected, setSelected] = useState<Set<string>>(
-    () => new Set(students.filter((s) => s.status !== "ok").map((s) => s.id)),
-  );
-  const payFetcher = useFetcher<ActionState>();
-  const selectedTotal = students.filter((s) => selected.has(s.id)).reduce((sum, s) => sum + amountDue(s), 0);
-
-  function toggle(id: string, on: boolean) {
-    const next = new Set(selected);
-    if (on) next.add(id);
-    else next.delete(id);
-    setSelected(next);
-  }
-
   return (
-    <payFetcher.Form method="post">
-      <input type="hidden" name="intent" value="pay" />
-      <ul className="divide-y divide-stone-200 rounded-2xl border border-stone-200 bg-white shadow-sm shadow-stone-900/5">
+    <>
+      <ul className="divide-y divide-stone-100 overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-[0_1px_2px_rgb(28_25_23/0.04)]">
         {students.map((s) => (
-          <li key={s.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 sm:px-5">
-            <input
-              type="checkbox"
-              name="studentIds"
-              value={s.id}
-              checked={selected.has(s.id)}
-              onChange={(e) => toggle(s.id, e.target.checked)}
-              aria-label={t("Include {name} in the payment", { name: s.name })}
-              className="h-4 w-4"
-            />
+          <li key={s.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3.5">
             <Link to={`/students/${s.id}`} className="flex min-w-0 flex-1 basis-40 items-center gap-3 hover:underline">
               <Avatar name={s.name} />
               <span className="min-w-0">
@@ -232,21 +201,9 @@ function FamilyPayForm({ students, canEmail }: { students: PayStudent[]; canEmai
           </li>
         ))}
       </ul>
-      <div className="mt-3 flex flex-wrap items-center gap-3">
-        <button
-          type="submit"
-          disabled={selected.size === 0 || payFetcher.state !== "idle"}
-          className={primaryButton}
-        >
-          {payFetcher.state !== "idle"
-            ? t("Saving…")
-            : selected.size === students.length && students.length > 1
-              ? t("Mark all paid · {amount}", { amount: formatCurrency(selectedTotal) })
-              : t("Mark selected paid · {amount}", { amount: formatCurrency(selectedTotal) })}
-        </button>
-        <p className="text-xs text-stone-500">{t("Each child's own bill is recorded and moved to the next 1st.")}</p>
-      </div>
-      <FormError message={payFetcher.data?.error} />
-    </payFetcher.Form>
+      <p className="mt-3 text-sm text-stone-500">
+        {t("Payments, including cash, are submitted by the family from their portal. Confirm them on the Payments page.")}
+      </p>
+    </>
   );
 }

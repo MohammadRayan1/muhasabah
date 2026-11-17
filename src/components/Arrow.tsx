@@ -1,9 +1,7 @@
-/** A text arrow that points the reading direction (→ in English, ← in Arabic). */
+import { ArrowLeft, ArrowRight } from "lucide-react";
+
+/** An arrow that points the reading direction (→ in English, ← in Arabic). */
 export default function Arrow({ back = false }: { back?: boolean }) {
-  return (
-    <span aria-hidden>
-      <span className={back ? "rtl:hidden" : "ltr:hidden"}>←</span>
-      <span className={back ? "ltr:hidden" : "rtl:hidden"}>→</span>
-    </span>
-  );
+  const Icon = back ? ArrowLeft : ArrowRight;
+  return <Icon aria-hidden className="inline-block h-[1em] w-[1em] align-[-0.125em] rtl:-scale-x-100" strokeWidth={2.25} />;
 }

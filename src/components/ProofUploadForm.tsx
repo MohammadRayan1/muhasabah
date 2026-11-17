@@ -6,7 +6,7 @@ import { formatCurrency } from "@/lib/format";
 import { PROOF_METHODS, proofImageRequired, type ProofMethod } from "@/lib/proofs";
 import type { ActionState } from "@/lib/action-state";
 import FormError from "@/components/FormError";
-import { card, input, label, primaryButton } from "@/components/ui";
+import { input, label, primaryButton } from "@/components/ui";
 import { useT } from "@/lib/useT";
 
 type PayableStudent = { id: string; name: string; due: number; overdueOrSoon: boolean };
@@ -85,12 +85,12 @@ export default function ProofUploadForm({ students }: { students: PayableStudent
         setPreview(null);
         setMethod("zelle");
       }}
-      className={`${card} space-y-4`}
+      className="space-y-5 rounded-3xl border border-stone-200 bg-white p-6 shadow-sm shadow-stone-900/5 sm:p-7"
     >
       <input type="hidden" name="intent" value="proof" />
       <div>
-        <h3 className="font-bold text-stone-900">{t("Paid your teacher? Send the proof")}</h3>
-        <p className="text-sm text-stone-500">
+        <h2 className="text-lg font-bold text-stone-900">{t("Submit payment proof")}</h2>
+        <p className="mt-1 text-sm leading-relaxed text-stone-500">
           {t("Pay the way you normally do (Zelle, cash…), then send a screenshot here. Your teacher confirms it and it shows in your history.")}
         </p>
       </div>
@@ -181,7 +181,7 @@ export default function ProofUploadForm({ students }: { students: PayableStudent
             {proofImageRequired(method) ? "" : t("(optional for cash or check)")}
           </span>
         </span>
-        <label className="mt-1 flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-stone-300 p-3 hover:bg-stone-50">
+        <label className="mt-1 flex cursor-pointer items-center gap-4 rounded-2xl border border-dashed border-stone-300 p-4 transition-colors hover:border-emerald-600 hover:bg-emerald-50/40">
           {preview ? (
             <img src={preview} alt="" className="h-16 w-16 rounded-lg object-cover" />
           ) : (

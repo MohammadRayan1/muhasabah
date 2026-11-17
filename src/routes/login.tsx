@@ -5,6 +5,8 @@ import { createSessionRedirect, getSession, homeFor } from "@/lib/auth/session.s
 import { verifyPassword } from "@/lib/auth/password.server";
 import FormError from "@/components/FormError";
 import GeometricPattern from "@/components/GeometricPattern";
+import Rosette from "@/components/Rosette";
+import { stagger } from "@/components/ui";
 import { metaTitle, useT } from "@/lib/useT";
 
 const inputClass =
@@ -49,23 +51,27 @@ export default function LoginPage({ actionData }: Route.ComponentProps) {
         <p className="relative text-sm font-semibold tracking-wide text-sidebar-muted">Muhasabah</p>
 
         <div className="relative">
+          <Rosette
+            hairline
+            className="slow-turn pointer-events-none absolute -top-16 -end-10 h-64 w-64 text-gold opacity-25 lg:-top-24 lg:-start-16 lg:end-auto lg:h-96 lg:w-96"
+          />
           <p
             lang="ar"
-            className="text-end font-arabic text-6xl leading-[1.3] text-gold sm:text-7xl lg:text-start lg:text-8xl"
+            className="page-enter relative text-end font-arabic text-6xl leading-[1.3] text-gold sm:text-7xl lg:text-start lg:text-8xl"
           >
             محاسبة
           </p>
-          <p className="mt-5 max-w-sm text-lg leading-relaxed text-sidebar-foreground lg:mt-8 lg:text-xl">
+          <p className="rise relative mt-5 max-w-sm text-lg leading-relaxed text-sidebar-foreground lg:mt-8 lg:text-xl" style={stagger(2)}>
             {t("Muhasabah means taking account. Here, that's your class: who's enrolled, who's paid, and what's due on the 1st.")}
           </p>
         </div>
 
-        <p className="relative hidden text-sm text-sidebar-muted lg:block">{t("Tuition tracker")}</p>
+        <p className="relative hidden text-sm text-sidebar-muted lg:block">{t("Tuition management")}</p>
       </section>
 
       <section className="flex items-center justify-center px-6 py-12 sm:px-10">
-        <div className="w-full max-w-sm">
-          <h1 className="text-3xl font-bold tracking-tight text-stone-900">{t("Assalamu alaikum")}</h1>
+        <div className="rise w-full max-w-sm" style={stagger(1)}>
+          <h1 className="text-3xl font-bold text-stone-900">{t("Assalamu alaikum")}</h1>
           <p className="mt-2 text-stone-500">{t("Welcome back. Sign in to see your class.")}</p>
 
           <Form method="post" className="mt-8 space-y-5">

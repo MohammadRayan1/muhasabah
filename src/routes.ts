@@ -15,7 +15,8 @@ export default [
   layout("routes/app-layout.tsx", [
     index("routes/dashboard.tsx"),
     route("payments", "routes/payments.tsx"),
-    route("families", "routes/families.tsx"),
+    route("roster", "routes/roster.tsx"),
+    route("families", "routes/families-redirect.ts"),
     route("families/:id", "routes/family.tsx"),
     route("programs", "routes/programs.tsx"),
     route("reminders", "routes/reminders.tsx"),

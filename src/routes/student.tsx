@@ -5,16 +5,13 @@ import { requireTeacher } from "@/lib/auth/session.server";
 import {
   appUrl,
   createInvite,
-  deleteProgress,
-  logProgress,
   setStudentFamily,
   updateStudentPrograms,
 } from "@/lib/mutations.server";
 import { emailConfigured } from "@/lib/email.server";
 import { receiptCode } from "@/lib/reminders";
 import RemindMenu from "@/components/RemindMenu";
-import { ProgressForm, ProgressList, ProgressSummary } from "@/components/ProgressLog";
-import { input, secondaryButton } from "@/components/ui";
+import { input, secondaryButton, pageWidth, pageTitle } from "@/components/ui";
 import { getPaymentStatus, STATUS_BADGE_STYLES, STATUS_LABEL } from "@/lib/status";
 import { formatCurrency, formatDate } from "@/lib/format";
 import SendInviteForm from "@/components/SendInviteForm";
@@ -37,7 +34,6 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       include: {
         payments: { orderBy: { paidAt: "desc" } },
         family: { include: { students: { where: { active: true }, select: { id: true, name: true } } } },
-        progress: { orderBy: [{ date: "desc" }, { createdAt: "desc" }], take: 30 },
         enrollments: { include: { program: true } },
         user: { select: { email: true } },
         invites: { where: { acceptedAt: null }, orderBy: { createdAt: "desc" } },
@@ -66,10 +62,6 @@ export async function action({ request, params }: Route.ActionArgs) {
       return createInvite(formData);
     case "setFamily":
       return setStudentFamily(formData);
-    case "logProgress":
-      return logProgress(formData);
-    case "deleteProgress":
-      return deleteProgress(formData);
     default:
       return { error: "Unknown action" };
   }
@@ -83,12 +75,12 @@ export default function StudentProfilePage({ loaderData }: Route.ComponentProps)
   const totalPaid = student.payments.reduce((sum, p) => sum + p.amount, 0);
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className={pageWidth}>
       <div className="mb-6 flex items-start justify-between">
         <div className="flex items-center gap-4">
           <Avatar name={student.name} size="lg" />
           <div>
-            <h1 className="text-2xl font-bold text-stone-900">{student.name}</h1>
+            <h1 className={pageTitle}>{student.name}</h1>
             <p className="text-sm text-stone-500">
               {[student.phone, student.email].filter(Boolean).join(" · ") || t("No contact info")}
             </p>
@@ -158,19 +150,10 @@ export default function StudentProfilePage({ loaderData }: Route.ComponentProps)
           <button type="submit" className={secondaryButton}>
             {t("Save")}
           </button>
-          <Link to="/families" className="min-h-11 px-2 py-3 text-sm text-stone-500 hover:underline">
+          <Link to="/roster" className="min-h-11 px-2 py-3 text-sm text-stone-500 hover:underline">
             {t("New family…")}
           </Link>
         </Form>
-      </div>
-
-      <div className="mb-8">
-        <h2 className="mb-3 text-lg font-medium text-stone-900">{t("Quran progress")}</h2>
-        <ProgressSummary entries={student.progress} />
-        <ProgressForm lastSurah={student.progress[0]?.surah} />
-        <div className="mt-4">
-          <ProgressList entries={student.progress} canDelete />
-        </div>
       </div>
 
       <div className="mb-8">

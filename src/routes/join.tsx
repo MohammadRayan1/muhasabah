@@ -14,7 +14,7 @@ import { input, label, primaryButton } from "@/components/ui";
 import { dayChoices, daysLabel, priceForDays } from "@/lib/pricing";
 import { metaTitle, useT } from "@/lib/useT";
 
-export const meta: Route.MetaFunction = ({ matches }) => [{ title: metaTitle(matches, "Sign up") }];
+export const meta: Route.MetaFunction = ({ matches }) => [{ title: metaTitle(matches, "Registration") }];
 
 export async function loader({ params }: Route.LoaderArgs) {
   const open = await findOpenLink(params.token);
@@ -64,7 +64,7 @@ export default function JoinPage({ loaderData, actionData }: Route.ComponentProp
       <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center px-4 text-center">
         <h1 className="text-xl font-bold text-stone-900">{t("This link isn't working")}</h1>
         <p className="mt-2 text-sm text-stone-500">
-          {t("It may have been used already or expired. Ask your teacher to send you a new sign-up link.")}
+          {t("It may have been used already or expired. Ask your teacher to send you a new registration link.")}
         </p>
       </main>
     );
@@ -90,14 +90,14 @@ export default function JoinPage({ loaderData, actionData }: Route.ComponentProp
 
   return (
     <main className="min-h-screen">
-      <header className="relative overflow-hidden bg-sidebar px-6 pt-10 pb-8 text-sidebar-foreground sm:px-10">
+      <header className="relative overflow-hidden bg-sidebar pt-12 pb-10 text-sidebar-foreground">
         <GeometricPattern className="text-sidebar-foreground opacity-[0.06]" />
-        <div className="relative mx-auto max-w-xl">
+        <div className="relative mx-auto max-w-xl px-4 sm:px-6">
           <p lang="ar" className="text-start font-arabic text-4xl leading-tight text-gold">
             محاسبة
           </p>
-          <h1 className="mt-3 text-3xl font-bold tracking-tight">{t("Assalamu alaikum")}</h1>
-          <p className="mt-2 text-sidebar-muted">
+          <h1 className="mt-3 text-3xl font-bold">{t("Assalamu alaikum")}</h1>
+          <p className="mt-2 max-w-[52ch] leading-relaxed text-sidebar-muted">
             {t("You've been invited to join the class. Fill this in once, and your teacher will confirm.")}
           </p>
         </div>
@@ -107,7 +107,7 @@ export default function JoinPage({ loaderData, actionData }: Route.ComponentProp
         <FormError message={actionData?.error} />
 
         <fieldset>
-          <legend className="text-lg font-bold text-stone-900">{t("Who are you signing up?")}</legend>
+          <legend className="text-lg font-bold text-stone-900">{t("Who are you registering?")}</legend>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <ModeButton
               selected={mode === "self"}
@@ -167,7 +167,7 @@ export default function JoinPage({ loaderData, actionData }: Route.ComponentProp
                 </div>
               </div>
               <p className="text-xs text-stone-500">
-                {t("You'll sign in with this email and password to see bills, receipts and progress.")}
+                {t("You'll sign in with this email and password to see your bills and receipts.")}
               </p>
             </section>
 
@@ -255,7 +255,7 @@ export default function JoinPage({ loaderData, actionData }: Route.ComponentProp
             </section>
 
             <button type="submit" disabled={pending} className={`${primaryButton} h-12 w-full text-[15px]`}>
-              {pending ? t("Sending…") : t("Sign up")}
+              {pending ? t("Sending…") : t("Complete registration")}
             </button>
             <p className="text-center text-xs text-stone-500">{t("Your teacher will confirm before anything is due.")}</p>
           </>

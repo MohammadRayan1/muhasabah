@@ -6,6 +6,7 @@ import { resetMonthPayments } from "@/lib/mutations.server";
 import { formatCurrency, formatMonth, formatDate } from "@/lib/format";
 import Arrow from "@/components/Arrow";
 import ResetMonthButton from "@/components/ResetMonthButton";
+import { pageTitle, pageWidth } from "@/components/ui";
 import { useT } from "@/lib/useT";
 
 export const meta: Route.MetaFunction = ({ data }) => [
@@ -32,13 +33,13 @@ export default function MonthDetailPage({ loaderData }: Route.ComponentProps) {
   const diff = detail.collectedTotal - detail.expectedTotal;
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className={pageWidth}>
       <Link to="/reports" className="text-sm text-stone-500 hover:underline">
         <Arrow back /> {t("Back to Monthly Revenue")}
       </Link>
 
       <div className="mt-4 mb-6 flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-stone-900">{formatMonth(detail.slug)}</h1>
+        <h1 className={pageTitle}>{formatMonth(detail.slug)}</h1>
         <ResetMonthButton
           month={detail.slug}
           label={formatMonth(detail.slug)}
@@ -102,7 +103,7 @@ export default function MonthDetailPage({ loaderData }: Route.ComponentProps) {
         </div>
       )}
 
-      <h2 className="mb-3 text-lg font-medium text-stone-900">{t("Who was expected to pay")}</h2>
+      <h2 className="mb-3 text-lg font-medium text-stone-900">{t("Expected payments")}</h2>
       {detail.expectedStudents.length === 0 ? (
         <p className="text-sm text-stone-500">{t("No students were enrolled yet this month.")}</p>
       ) : (

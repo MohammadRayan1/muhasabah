@@ -29,7 +29,7 @@ export async function submitProof(session: SessionPayload, formData: FormData): 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(paidOnStr)) return { error: "Pick the date you paid" };
 
   const pending = await prisma.student.count({ where: { id: { in: studentIds }, pendingApproval: true } });
-  if (pending > 0) return { error: "Your teacher hasn't confirmed this sign-up yet." };
+  if (pending > 0) return { error: "Your teacher hasn't approved this registration yet." };
 
   let image: Buffer | null = null;
   let imageType: string | null = null;

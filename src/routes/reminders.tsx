@@ -9,7 +9,8 @@ import { amountDue, getPaymentStatus } from "@/lib/status";
 import { OVERDUE_DAYS, reminderContact, UPCOMING_DAYS } from "@/lib/reminders";
 import { formatCurrency, formatDate } from "@/lib/format";
 import RemindMenu from "@/components/RemindMenu";
-import { card, pageTitle, sectionTitle } from "@/components/ui";
+import PageHeader from "@/components/PageHeader";
+import { card, sectionTitle, pageWidth } from "@/components/ui";
 import { metaTitle, useT } from "@/lib/useT";
 
 export const meta: Route.MetaFunction = ({ matches }) => [{ title: metaTitle(matches, "Reminders") }];
@@ -60,15 +61,15 @@ export default function RemindersPage({ loaderData }: Route.ComponentProps) {
     .filter((s) => s.status !== "ok");
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <h1 className={pageTitle}>{t("Reminders")}</h1>
-      <p className="mt-1 mb-8 max-w-prose text-sm text-stone-500">
-        {t("A kind nudge for anyone who's due this week or late. WhatsApp and text open on your own phone with the message written for you.")}
-      </p>
+    <div className={pageWidth}>
+      <PageHeader
+        title={t("Reminders")}
+        description={t("A kind nudge for anyone who's due this week or late. WhatsApp and text open on your own phone with the message written for you.")}
+      />
 
       <section className="mb-10">
         <h2 className={sectionTitle}>
-          {t("Who to remind")} <span className="font-semibold text-stone-500 tabular-nums">{needing.length}</span>
+          {t("Students to remind")} <span className="font-semibold text-stone-500 tabular-nums">{needing.length}</span>
         </h2>
         {needing.length === 0 ? (
           <p className={`${card} flex items-center gap-2 text-sm text-stone-600`}>
@@ -138,7 +139,7 @@ export default function RemindersPage({ loaderData }: Route.ComponentProps) {
 
       {recent.length > 0 ? (
         <section>
-          <h2 className={sectionTitle}>{t("Recently sent")}</h2>
+          <h2 className={sectionTitle}>{t("Reminder history")}</h2>
           <ul className="space-y-1 text-sm text-stone-600">
             {recent.map((r) => (
               <li key={r.id}>

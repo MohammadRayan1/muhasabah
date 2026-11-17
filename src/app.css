@@ -1,19 +1,32 @@
 @import "tailwindcss";
 
+/* Madinah green and gold on warm ivory. */
 :root {
-  --background: #fdf9f3;
-  --foreground: #44403c;
+  --background: #f8f6ef;
+  --foreground: #3f3b36;
 
-  --sidebar: #34362b;
-  --sidebar-foreground: #e8e6da;
-  --sidebar-muted: #9a9c86;
-  --sidebar-active-bg: #c9cdb2;
-  --sidebar-active-fg: #2b2d22;
-  --accent-circle: #6b6f58;
+  /* Deep brand panel: sign-in, registration and portal headers. */
+  --sidebar: #0f3b2c;
+  --sidebar-foreground: #ecf1ec;
+  --sidebar-muted: #9bb5a6;
+  --sidebar-active-bg: #c5d9c9;
+  --sidebar-active-fg: #0b2a1f;
+  --ledger: #0f3b2c;
+  --accent-circle: #2f6b52;
 
-  /* Warm date-gold, used only on the deep olive panels (login, month ledger). */
-  --gold: #e2b45a;
-  --ledger: #34362b;
+  /* App navigation: a light rail with a hairline edge. */
+  --nav: #ffffff;
+  --nav-border: #e9e5da;
+  --nav-foreground: #3f3b36;
+  --nav-muted: #8a847a;
+  --nav-active-bg: #edf5ef;
+  --nav-active-fg: #0f5636;
+
+  --gold: #d4af37;
+  /* Gold that reads on a light surface (text, icons). */
+  --gold-ink: #8a6a12;
+  --gold-wash: #fbf4dc;
+  --gold-line: #eedfa9;
 }
 
 @theme inline {
@@ -24,37 +37,67 @@
   --color-sidebar-muted: var(--sidebar-muted);
   --color-sidebar-active-bg: var(--sidebar-active-bg);
   --color-sidebar-active-fg: var(--sidebar-active-fg);
+  --color-nav: var(--nav);
+  --color-nav-border: var(--nav-border);
+  --color-nav-foreground: var(--nav-foreground);
+  --color-nav-muted: var(--nav-muted);
+  --color-nav-active-bg: var(--nav-active-bg);
+  --color-nav-active-fg: var(--nav-active-fg);
   --color-accent-circle: var(--accent-circle);
   --color-gold: var(--gold);
+  --color-gold-ink: var(--gold-ink);
+  --color-gold-wash: var(--gold-wash);
+  --color-gold-line: var(--gold-line);
   --color-ledger: var(--ledger);
-  --font-sans: "Nunito";
+  --font-sans: "Inter", "Tajawal", ui-sans-serif, system-ui, sans-serif;
   --font-arabic: "Amiri", serif;
 }
 
-/* Primary green, one step deeper than Tailwind's default so white button text
-   clears WCAG AA (Tailwind's emerald-600 with white is only 3.7:1). */
+/* The action green. White text on 600 clears WCAG AA (about 6:1). */
 :root {
-  --color-emerald-600: #047857;
-  --color-emerald-700: #065f46;
+  --color-emerald-50: #eef6f1;
+  --color-emerald-100: #dcede2;
+  --color-emerald-200: #bcdcc8;
+  --color-emerald-400: #4fae7f;
+  --color-emerald-500: #23885a;
+  --color-emerald-600: #146c45;
+  --color-emerald-700: #0f5636;
 }
 
 /* Browser surfaces, themed from the palette rather than left at defaults. */
 :root {
-  accent-color: #047857;
-  caret-color: #047857;
+  accent-color: #146c45;
+  caret-color: #146c45;
 }
 ::selection {
-  background: rgb(4 120 87 / 0.22);
+  background: rgb(20 108 69 / 0.2);
+}
+html {
+  scrollbar-color: var(--color-stone-300) transparent;
+  scrollbar-width: thin;
+}
+a {
+  text-underline-offset: 0.2em;
 }
 :focus-visible {
-  outline: 2px solid #047857;
+  outline: 2px solid #146c45;
   outline-offset: 2px;
 }
 p {
   text-wrap: pretty;
 }
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+html[lang="en"] :is(h1, h2) {
+  letter-spacing: -0.022em;
+}
 
-/* The one motion moment: the month ledger's collected bar settles in. */
+/* ---------- Motion ----------
+   Calm and short: things settle into place, nothing bounces. All of it is off for
+   people who ask for reduced motion (bottom of this block). */
 @keyframes ledger-fill {
   from {
     transform: scaleX(0);
@@ -62,24 +105,135 @@ p {
 }
 .ledger-fill {
   transform-origin: left;
-  animation: ledger-fill 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: ledger-fill 900ms cubic-bezier(0.16, 1, 0.3, 1) 200ms both;
 }
+
+/* Page content and dashboard sections rise in, staggered by --i. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+/* Page swaps happen dozens of times a session, so this one stays short and small. */
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+.page-enter {
+  animation: page-in 220ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+.rise {
+  animation: rise 560ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+
+/* Short supporting lines settle in after the figure they belong to. */
+.ayah-caption {
+  animation: rise 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Dialogs rise into place; the backdrop fades. */
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+}
+@keyframes backdrop-in {
+  from {
+    opacity: 0;
+  }
+}
+dialog.sheet[open] {
+  animation: sheet-in 240ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+dialog.sheet[open]::backdrop {
+  animation: backdrop-in 240ms ease-out;
+}
+
+/* Very slow turn for the large star behind the sign-in wordmark. */
+@keyframes turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.slow-turn {
+  animation: turn 120s linear infinite;
+}
+
+/* Loading bar (NavProgress). Waits a beat so quick navigations don't flash it. */
+@keyframes nav-grow {
+  from {
+    transform: scaleX(0);
+    opacity: 1;
+  }
+  to {
+    transform: scaleX(0.9);
+    opacity: 1;
+  }
+}
+.nav-progress {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 60;
+  height: 3px;
+  transform-origin: left;
+  background: linear-gradient(90deg, #146c45, var(--gold));
+  opacity: 0;
+  pointer-events: none;
+}
+.nav-progress.is-busy {
+  animation: nav-grow 2.4s cubic-bezier(0.1, 0.6, 0.3, 1) 150ms both;
+}
+[dir="rtl"] .nav-progress {
+  transform-origin: right;
+  background: linear-gradient(270deg, #146c45, var(--gold));
+}
+
+/* A small press-in on every button, so taps feel received. */
+button:not(:disabled):active {
+  transform: scale(0.97);
+}
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .ledger-fill {
+  .ledger-fill,
+  .page-enter,
+  .rise,
+  .ayah-caption,
+  .slow-turn,
+  dialog.sheet[open],
+  dialog.sheet[open]::backdrop,
+  .nav-progress.is-busy {
     animation: none;
+  }
+  .nav-progress.is-busy {
+    opacity: 1;
+    transform: scaleX(0.6);
+  }
+  button:not(:disabled):active {
+    transform: none;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  /* Latin from Nunito, Arabic from Tajawal */
-  font-family: var(--font-sans), "Tajawal", Arial, Helvetica, sans-serif;
+  /* Latin from Inter, Arabic from Tajawal */
+  font-family: var(--font-sans);
+  font-feature-settings: "cv11", "ss01";
+  line-height: 1.55;
 }
 
 /* Arabic reads better a touch larger and with more line height. */
 html[lang="ar"] body {
-  line-height: 1.65;
+  line-height: 1.7;
 }
 [dir="rtl"] .ledger-fill {
   transform-origin: right;
@@ -102,14 +256,23 @@ html[lang="ar"] body {
   --background: #141412;
   --foreground: #d6d1c7;
 
-  --sidebar: #1c1d17;
-  --sidebar-foreground: #e8e6da;
-  --sidebar-muted: #9a9c86;
-  --sidebar-active-bg: #3b3e30;
-  --sidebar-active-fg: #eef0e2;
+  --sidebar: #0c2a20;
+  --sidebar-foreground: #e4ece6;
+  --sidebar-muted: #8fa99a;
+  --sidebar-active-bg: #1f3d30;
+  --sidebar-active-fg: #e4ece6;
+  --ledger: #12352a;
 
-  /* Lifted olive so the ledger panel still reads as a panel on the dark ground */
-  --ledger: #2b2d23;
+  --nav: #171612;
+  --nav-border: #2a2925;
+  --nav-foreground: #e2ded6;
+  --nav-muted: #9d978c;
+  --nav-active-bg: #15301f;
+  --nav-active-fg: #8fd6ae;
+
+  --gold-ink: #e3c369;
+  --gold-wash: #2a2412;
+  --gold-line: #4a3f1c;
 
   /* Neutral scale, inverted: low numbers = surfaces, high numbers = text */
   --color-stone-50: #201f1c;
@@ -146,7 +309,7 @@ html[lang="ar"] body {
    only, leaving the buttons' colors untouched. */
 .dark .text-emerald-700,
 .dark .text-emerald-600 {
-  color: #5fcf9f;
+  color: #7fd0a5;
 }
 .dark .text-red-700,
 .dark .text-red-600 {

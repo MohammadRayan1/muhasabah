@@ -1,16 +1,18 @@
 import { Link } from "react-router";
-import { BookOpen, Check, UserPlus } from "lucide-react";
+import { BookOpen, Check, ChevronRight, ClipboardList, FileCheck2, Sheet, UserPlus, Users } from "lucide-react";
 import type { Route } from "./+types/dashboard";
 import { prisma } from "@/lib/prisma.server";
 import { requireTeacher } from "@/lib/auth/session.server";
 import { getMonthlyRevenue } from "@/lib/reports.server";
-import { recordPayment, setStudentActive } from "@/lib/mutations.server";
+import { setStudentActive } from "@/lib/mutations.server";
 import { emailConfigured } from "@/lib/email.server";
 import { getPaymentStatus } from "@/lib/status";
 import StudentRow from "@/components/StudentRow";
+import type { PendingProof } from "@/components/RecordPaymentDialog";
 import MonthLedger from "@/components/MonthLedger";
-import TodayLine from "@/components/TodayLine";
+import TodayHeading from "@/components/TodayHeading";
 import Arrow from "@/components/Arrow";
+import { pageWidth } from "@/components/ui";
 import type { Family, Program, Student } from "@/generated/prisma/client";
 import { useT } from "@/lib/useT";
 
@@ -19,7 +21,7 @@ type StudentWithPrograms = Student & { enrollments: { daysPerWeek: number | null
 export async function loader({ request }: Route.LoaderArgs) {
   await requireTeacher(request);
 
-  const [students, [month], programCount, pendingFamilies, pendingProofs] = await Promise.all([
+  const [students, [month], programCount, pendingFamilies, proofs] = await Promise.all([
     prisma.student.findMany({
       where: { active: true },
       orderBy: { nextDueDate: "asc" },
@@ -28,18 +30,20 @@ export async function loader({ request }: Route.LoaderArgs) {
     getMonthlyRevenue(1),
     prisma.program.count({ where: { active: true } }),
     prisma.family.count({ where: { students: { some: { pendingApproval: true } } } }),
-    prisma.paymentProof.count({ where: { status: "pending" } }),
+    prisma.paymentProof.findMany({
+      where: { status: "pending" },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, amount: true, method: true, paidOn: true, note: true, imageType: true, studentIds: true },
+    }),
   ]);
 
-  return { students, month, programCount, pendingFamilies, pendingProofs, canEmail: emailConfigured() };
+  return { students, month, programCount, pendingFamilies, proofs, canEmail: emailConfigured() };
 }
 
 export async function action({ request }: Route.ActionArgs) {
   await requireTeacher(request);
   const formData = await request.formData();
   switch (formData.get("intent")) {
-    case "recordPayment":
-      return recordPayment(formData);
     case "removeStudent":
       formData.set("active", "false");
       return setStudentActive(formData);
@@ -50,65 +54,109 @@ export async function action({ request }: Route.ActionArgs) {
 
 export default function Home({ loaderData }: Route.ComponentProps) {
   const t = useT();
-  const { students, month, programCount, pendingFamilies, pendingProofs, canEmail } = loaderData;
+  const { students, month, programCount, pendingFamilies, proofs, canEmail } = loaderData;
+  const pendingProofs = proofs.length;
 
   const overdue = students.filter((s) => getPaymentStatus(s.nextDueDate).status === "overdue");
   const dueSoon = students.filter((s) => getPaymentStatus(s.nextDueDate).status === "due_soon");
   const ok = students.filter((s) => getPaymentStatus(s.nextDueDate).status === "ok");
 
+  const groups = [
+    { title: "Overdue", note: "Past their due date", students: overdue },
+    { title: "Due this week", note: "Coming up in the next 7 days", students: dueSoon },
+    { title: "Upcoming", note: "Nothing due in the next 7 days", students: ok },
+  ].filter((g) => g.students.length > 0);
+
   return (
-    <div className="mx-auto max-w-4xl">
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight text-stone-900">{t("Assalamu alaikum")}</h1>
-        <TodayLine />
+    <div className={pageWidth}>
+      <header className="mb-10">
+        <TodayHeading />
       </header>
-
-      {pendingProofs > 0 ? (
-        <Link
-          to="/payments"
-          className="mb-4 flex items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-emerald-800 transition-colors hover:bg-emerald-100"
-        >
-          <span className="font-semibold">
-            {pendingProofs === 1
-              ? t("1 payment proof to check")
-              : t("{n} payment proofs to check", { n: pendingProofs })}
-          </span>
-          <span className="text-sm font-semibold">
-            {t("Review")} <Arrow />
-          </span>
-        </Link>
-      ) : null}
-
-      {pendingFamilies > 0 ? (
-        <Link
-          to="/signups"
-          className="mb-8 flex items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-amber-700 transition-colors hover:bg-amber-100"
-        >
-          <span className="font-semibold">
-            {pendingFamilies === 1
-              ? t("1 new sign-up is waiting for you")
-              : t("{n} new sign-ups are waiting for you", { n: pendingFamilies })}
-          </span>
-          <span className="text-sm font-semibold">
-            {t("Review")} <Arrow />
-          </span>
-        </Link>
-      ) : null}
 
       {students.length === 0 ? (
         <GettingStarted hasPrograms={programCount > 0} />
       ) : (
         <>
-          <MonthLedger
-            month={month}
-            counts={{ overdue: overdue.length, dueSoon: dueSoon.length, ok: ok.length }}
-          />
-          <StudentGroup title="Needs attention" note="Past their due date" students={overdue} canEmail={canEmail} />
-          <StudentGroup title="Due this week" note="Coming up in the next 7 days" students={dueSoon} canEmail={canEmail} />
-          <StudentGroup title="Paid up" note="Nothing due for at least a week" students={ok} canEmail={canEmail} />
+          <div className="mb-10 grid gap-4 md:grid-cols-3">
+            <MonthLedger
+              className="md:col-span-3"
+              month={month}
+              counts={{ overdue: overdue.length, dueSoon: dueSoon.length, ok: ok.length }}
+            />
+            <QuickCard
+              to="/payments"
+              icon={FileCheck2}
+              label={t("Payment Review")}
+              title={pendingProofs === 0 ? t("Nothing to check") : pendingProofs === 1 ? t("1 proof to check") : t("{n} proofs to check", { n: pendingProofs })}
+              attention={pendingProofs > 0}
+            />
+            <QuickCard
+              to="/signups"
+              icon={ClipboardList}
+              label={t("Registration")}
+              title={pendingFamilies === 0 ? t("No one waiting") : pendingFamilies === 1 ? t("1 awaiting approval") : t("{n} awaiting approval", { n: pendingFamilies })}
+              attention={pendingFamilies > 0}
+            />
+            <QuickCard
+              to="/roster"
+              icon={Sheet}
+              label={t("Students")}
+              title={students.length === 1 ? t("1 student") : t("{n} students", { n: students.length })}
+            />
+          </div>
+
+          <section aria-labelledby="students-title" className="overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-[0_1px_2px_rgb(28_25_23/0.04)]">
+            <div className="flex items-center justify-between gap-4 border-b border-stone-100 px-5 py-4">
+              <h2 id="students-title" className="flex items-center gap-2 text-base font-semibold text-stone-900">
+                <Users aria-hidden className="h-4 w-4 text-stone-400" />
+                {t("Students")}
+                <span className="font-normal text-stone-400 tabular-nums">{students.length}</span>
+              </h2>
+              <Link to="/roster" className="text-sm font-semibold text-emerald-700 hover:underline">
+                {t("View all")} <Arrow />
+              </Link>
+            </div>
+            {groups.map((g) => (
+              <StudentGroup key={g.title} {...g} canEmail={canEmail} proofs={proofs} />
+            ))}
+          </section>
         </>
       )}
+
     </div>
+  );
+}
+
+function QuickCard({
+  to,
+  icon: Icon,
+  label,
+  title,
+  attention = false,
+}: {
+  to: string;
+  icon: typeof Users;
+  label: string;
+  title: string;
+  attention?: boolean;
+}) {
+  return (
+    <Link
+      to={to}
+      className="group flex flex-col justify-between gap-6 rounded-2xl border border-stone-200/80 bg-white p-5 shadow-[0_1px_2px_rgb(28_25_23/0.04)] transition-[border-color,box-shadow] hover:border-stone-300 hover:shadow-[0_4px_12px_rgb(28_25_23/0.06)]"
+    >
+      <span className="flex items-center justify-between text-sm font-medium text-stone-500">
+        <span className="flex items-center gap-2">
+          <Icon aria-hidden className="h-4 w-4" />
+          {label}
+        </span>
+        {attention ? <span aria-hidden className="h-2 w-2 rounded-full bg-gold" /> : null}
+      </span>
+      <span className="flex items-center justify-between gap-3 text-lg font-semibold text-stone-900">
+        {title}
+        <ChevronRight aria-hidden className="h-4 w-4 text-stone-400 transition-transform group-hover:translate-x-0.5 rtl:-scale-x-100 rtl:group-hover:-translate-x-0.5" />
+      </span>
+    </Link>
   );
 }
 
@@ -117,29 +165,35 @@ function StudentGroup({
   note,
   students,
   canEmail,
+  proofs,
 }: {
   title: string;
   note: string;
   students: StudentWithPrograms[];
   canEmail: boolean;
+  proofs: PendingProof[];
 }) {
   const t = useT();
-  if (students.length === 0) return null;
 
   return (
-    <section className="mb-10">
-      <div className="mb-3 flex items-baseline justify-between gap-4 px-1">
-        <h2 className="text-lg font-bold text-stone-900">
-          {t(title)} <span className="font-semibold text-stone-500 tabular-nums">{students.length}</span>
-        </h2>
-        <p className="text-sm text-stone-500">{t(note)}</p>
+    <div>
+      <div className="flex items-baseline justify-between gap-4 bg-stone-50/70 px-5 py-2 text-xs font-medium">
+        <h3 className="text-stone-700">
+          {t(title)} <span className="text-stone-400 tabular-nums">{students.length}</span>
+        </h3>
+        <p className="text-stone-400">{t(note)}</p>
       </div>
-      <ul className="divide-y divide-stone-200 overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm shadow-stone-900/5">
+      <ul className="divide-y divide-stone-100">
         {students.map((student) => (
-          <StudentRow key={student.id} student={student} canEmail={canEmail} />
+          <StudentRow
+            key={student.id}
+            student={student}
+            canEmail={canEmail}
+            proofs={proofs.filter((p) => p.studentIds.includes(student.id))}
+          />
         ))}
       </ul>
-    </section>
+    </div>
   );
 }
 
@@ -157,7 +211,7 @@ function GettingStarted({ hasPrograms }: { hasPrograms: boolean }) {
       done: false,
       href: "/signups#new-link",
       icon: UserPlus,
-      title: "Send your first sign-up link",
+      title: "Send your first registration link",
       body: "People pick the program, the days and a start date. You approve, and the first bill is worked out for you.",
     },
   ];
@@ -167,7 +221,7 @@ function GettingStarted({ hasPrograms }: { hasPrograms: boolean }) {
       <p lang="ar" className="text-start font-arabic text-4xl leading-[1.4] text-emerald-700">
         بسم الله
       </p>
-      <h2 className="mt-2 text-2xl font-bold text-stone-900">{t("Let's set up your class")}</h2>
+      <h2 className="mt-2 text-2xl font-bold text-stone-900">{t("Set up your class")}</h2>
       <p className="mt-2 max-w-prose text-stone-600">
         {t("Once your students are in, this page shows what's come in this month, who's due this week, and who needs a reminder.")}
       </p>

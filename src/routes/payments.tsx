@@ -10,7 +10,8 @@ import { formatCurrency, formatDate } from "@/lib/format";
 import { paymentMethodLabel } from "@/lib/proofs";
 import type { ActionState } from "@/lib/action-state";
 import FormError from "@/components/FormError";
-import { card, input, pageTitle, primaryButton, sectionTitle } from "@/components/ui";
+import PageHeader from "@/components/PageHeader";
+import { card, input, primaryButton, sectionTitle, pageWidth } from "@/components/ui";
 import { metaTitle, useT } from "@/lib/useT";
 
 export const meta: Route.MetaFunction = ({ matches }) => [{ title: metaTitle(matches, "Payments") }];
@@ -84,13 +85,13 @@ export default function PaymentsPage({ loaderData }: Route.ComponentProps) {
   const { pending, reviewed } = loaderData;
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <h1 className={pageTitle}>{t("Payments")}</h1>
-      <p className="mt-1 mb-8 max-w-prose text-sm text-stone-500">
-        {t(
+    <div className={pageWidth}>
+      <PageHeader
+        title={t("Payments")}
+        description={t(
           "Families pay you directly (Zelle, cash and so on) and send a screenshot here. Check it against your bank or app, then confirm it to mark them paid, or say why it wasn't accepted.",
         )}
-      </p>
+      />
 
       <section className="mb-10">
         <h2 className={sectionTitle}>
@@ -111,7 +112,7 @@ export default function PaymentsPage({ loaderData }: Route.ComponentProps) {
 
       {reviewed.length > 0 ? (
         <section>
-          <h2 className={sectionTitle}>{t("Recently reviewed")}</h2>
+          <h2 className={sectionTitle}>{t("Reviewed payment proofs")}</h2>
           <ul className="divide-y divide-stone-200 rounded-2xl border border-stone-200 bg-white shadow-sm shadow-stone-900/5">
             {reviewed.map((proof) => (
               <li key={proof.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 text-sm sm:px-5">

@@ -1,16 +1,17 @@
 import { Link, useFetcher } from "react-router";
+import { AlertCircle, CalendarCheck2, CalendarDays, Clock, Trash2 } from "lucide-react";
 import { getPaymentStatus, type PaymentStatus } from "@/lib/status";
 import { formatCurrency, formatDate } from "@/lib/format";
-import Avatar from "@/components/Avatar";
 import RemindMenu from "@/components/RemindMenu";
+import RecordPaymentDialog, { type PendingProof } from "@/components/RecordPaymentDialog";
 import type { Student, Program } from "@/generated/prisma/client";
 import { daysLabel } from "@/lib/pricing";
 import { useT } from "@/lib/useT";
 
-const DUE_TEXT: Record<PaymentStatus, string> = {
-  overdue: "text-red-700",
-  due_soon: "text-amber-700",
-  ok: "text-stone-600",
+const STATUS_PILL: Record<PaymentStatus, { dot: string; pill: string; icon: typeof Clock }> = {
+  overdue: { dot: "bg-red-500", pill: "border-red-200 bg-red-50 text-red-700", icon: AlertCircle },
+  due_soon: { dot: "bg-amber-500", pill: "border-amber-200 bg-amber-50 text-amber-700", icon: Clock },
+  ok: { dot: "bg-emerald-500", pill: "border-emerald-200 bg-emerald-50 text-emerald-700", icon: CalendarCheck2 },
 };
 
 export function dueDateLabel(daysUntilDue: number, status: PaymentStatus) {
@@ -28,66 +29,50 @@ type StudentWithPrograms = Student & {
   family?: { phone: string | null; email: string | null; guardianName: string | null } | null;
 };
 
-export default function StudentRow({ student, canEmail = false }: { student: StudentWithPrograms; canEmail?: boolean }) {
+export default function StudentRow({
+  student,
+  canEmail = false,
+  proofs = [],
+}: {
+  student: StudentWithPrograms;
+  canEmail?: boolean;
+  proofs?: PendingProof[];
+}) {
   const t = useT();
   const { status, daysUntilDue } = getPaymentStatus(student.nextDueDate);
   const programs = student.enrollments
     .map((e) => (e.daysPerWeek ? `${e.program.name} (${t(daysLabel(e.daysPerWeek))})` : e.program.name))
     .join(", ");
   const amountDue = student.firstPaymentAmount ?? student.tuitionAmount;
-  const payFetcher = useFetcher();
   const removeFetcher = useFetcher();
-  const paying = payFetcher.state !== "idle";
+  const look = STATUS_PILL[status];
+  const StatusIcon = look.icon;
 
   return (
-    <li className="flex flex-wrap items-center gap-x-5 gap-y-3 px-4 py-4 sm:px-5">
-      <Link to={`/students/${student.id}`} className="group flex min-w-0 flex-1 basis-56 items-center gap-3">
-        <Avatar name={student.name} />
-        <div className="min-w-0">
-          <p className="truncate font-semibold text-stone-900 underline-offset-4 group-hover:underline">
-            {student.name}
-          </p>
-          <p className="truncate text-sm text-stone-500">
-            {programs || t("No programs")} · {t("{amount}/month", { amount: formatCurrency(student.tuitionAmount) })}
-          </p>
-        </div>
+    <li className="flex flex-wrap items-center gap-x-4 gap-y-2.5 px-5 py-3.5 transition-colors hover:bg-stone-50/70">
+      <span aria-hidden className={`h-2 w-2 shrink-0 rounded-full ${look.dot}`} />
+      <Link to={`/students/${student.id}`} className="group min-w-0 flex-1 basis-48">
+        <p className="truncate text-[15px] font-medium text-stone-900 underline-offset-4 group-hover:underline">{student.name}</p>
+        <p className="truncate text-[13px] text-stone-500">
+          {programs || t("No programs")} · {t("{amount}/month", { amount: formatCurrency(student.tuitionAmount) })}
+        </p>
       </Link>
 
-      <div className="w-36 shrink-0">
-        <p className={`text-sm font-semibold ${DUE_TEXT[status]}`}>{t(dueDateLabel(daysUntilDue, status))}</p>
-        <p className="text-xs text-stone-500">
+      <div className="flex flex-wrap items-center gap-1.5 text-xs font-medium">
+        <span className={`inline-flex h-6 items-center gap-1 rounded-full border px-2 ${look.pill}`}>
+          <StatusIcon aria-hidden className="h-3.5 w-3.5" />
+          {t(dueDateLabel(daysUntilDue, status))}
+        </span>
+        <span className="inline-flex h-6 items-center gap-1 rounded-full border border-stone-200 px-2 text-stone-600">
+          <CalendarDays aria-hidden className="h-3.5 w-3.5 text-stone-400" />
           {formatDate(student.nextDueDate)}
           {student.firstPaymentAmount != null ? ` · ${t("first bill")}` : ""}
-        </p>
+        </span>
+        <span className="ms-1 text-sm font-semibold text-stone-900 tabular-nums">{formatCurrency(amountDue)}</span>
       </div>
 
-      <div className="flex items-center gap-3">
-        <payFetcher.Form method="post" action="/?index" className="flex items-center gap-2">
-          <input type="hidden" name="intent" value="recordPayment" />
-          <input type="hidden" name="studentId" value={student.id} />
-          <label className="relative">
-            <span className="sr-only">{t("Amount paid by {name}", { name: student.name })}</span>
-            <span aria-hidden className="pointer-events-none absolute top-1/2 start-3 -translate-y-1/2 text-sm text-stone-500">
-              $
-            </span>
-            <input
-              type="number"
-              name="amount"
-              step="0.01"
-              min="0.01"
-              defaultValue={amountDue}
-              required
-              className="h-10 w-24 rounded-xl border border-stone-300 bg-white pe-2 ps-6 text-sm text-stone-900 tabular-nums outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/15"
-            />
-          </label>
-          <button
-            type="submit"
-            disabled={paying}
-            className="h-10 rounded-xl bg-emerald-600 px-3.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-60"
-          >
-            {paying ? t("Saving…") : t("Mark paid")}
-          </button>
-        </payFetcher.Form>
+      <div className="flex items-center gap-2">
+        <RecordPaymentDialog student={student} amountDue={amountDue} dueDate={student.nextDueDate} proofs={proofs} />
         {status !== "ok" ? <RemindMenu student={student} canEmail={canEmail} /> : null}
         <removeFetcher.Form method="post" action="/?index">
           <input type="hidden" name="intent" value="removeStudent" />
@@ -95,9 +80,11 @@ export default function StudentRow({ student, canEmail = false }: { student: Stu
           <input type="hidden" name="active" value="false" />
           <button
             type="submit"
-            className="text-xs text-stone-500 underline-offset-4 transition-colors hover:text-red-700 hover:underline"
+            aria-label={t("Remove {name}", { name: student.name })}
+            title={t("Remove")}
+            className="flex h-9 w-9 items-center justify-center rounded-xl text-stone-400 transition-colors hover:bg-red-50 hover:text-red-700"
           >
-            {t("Remove")}
+            <Trash2 className="h-4 w-4" />
           </button>
         </removeFetcher.Form>
       </div>
