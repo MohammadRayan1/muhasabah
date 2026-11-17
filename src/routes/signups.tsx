@@ -47,7 +47,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     waiting: [...byFamily.values()],
     links: links.map((l) => ({
       ...l,
-      url: `${appUrl()}/join/${l.token}`,
+      url: `${appUrl(request)}/join/${l.token}`,
       programNames: l.programIds.map((id) => programNames.get(id) ?? "Removed program"),
     })),
     programs,

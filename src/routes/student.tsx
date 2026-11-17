@@ -50,7 +50,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   if (!student) throw data("Not found", { status: 404 });
 
   const pendingInvite = student.invites.find((invite) => invite.expiresAt > new Date()) ?? null;
-  const inviteUrl = pendingInvite ? `${appUrl()}/invite/${pendingInvite.token}` : null;
+  const inviteUrl = pendingInvite ? `${appUrl(request)}/invite/${pendingInvite.token}` : null;
 
   return { student, activePrograms, families, pendingInvite, inviteUrl, canEmail: emailConfigured() };
 }

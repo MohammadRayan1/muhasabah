@@ -21,8 +21,14 @@ function str(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
 }
 
-export function appUrl() {
-  return process.env.APP_URL ?? "http://localhost:5173";
+/**
+ * The site's address, for links we show or send. Prefer the address the page was
+ * actually served from, then Netlify's own URL for the site, and APP_URL last, so a
+ * mistyped APP_URL can't produce links to someone else's site.
+ */
+export function appUrl(request?: Request) {
+  if (request) return new URL(request.url).origin;
+  return (process.env.URL || process.env.APP_URL || "http://localhost:5173").replace(/\/+$/, "");
 }
 
 export async function createProgram(formData: FormData): Promise<ActionState> {
