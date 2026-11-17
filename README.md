@@ -53,7 +53,7 @@ Small Quran and Islamic-studies classes usually run on a notebook and memory. Wh
 
 - **React Router 7 (framework mode)** on Vite, with server loaders and actions. Forms work through plain `<form>` posts with an `intent`, and every teacher route checks the session on the server.
 - **PostgreSQL (Neon) + Prisma 7**, using the `pg` driver adapter. Migrations live in `prisma/migrations`.
-- **Auth:** bcrypt password hashes and a signed, HTTP-only JWT cookie. Teacher and parent roles. Parents can only reach their own children (`src/lib/access.server.ts`).
+- **Auth:** bcrypt password hashes or Google sign-in (OAuth with a signed state cookie), and a signed, HTTP-only JWT session cookie. Teacher and parent roles. Parents can only reach their own children (`src/lib/access.server.ts`).
 - **Billing logic** in `src/lib/dates.ts`: due dates on the 1st and prorated first bills.
 - **Payments:** only the family can submit a payment; the teacher reviews it (`src/lib/proofs.server.ts`). Screenshots are shrunk in the browser to about 1600px before upload and stored in Postgres; only the teacher and that family can open them (`src/routes/proof-image.ts`).
 - **Netlify:** SSR through `@netlify/vite-plugin-react-router`, plus a scheduled function (`netlify/functions/send-reminders.mts`) for the daily reminder run.
@@ -74,3 +74,4 @@ npm run dev                  # http://localhost:5173
 ### Optional setup
 
 - **Email** (invites, reminders, receipts): set `RESEND_API_KEY`. To email parents, verify a domain in Resend and set `EMAIL_FROM`.
+- **Continue with Google**: create an OAuth client (Web application) in Google Cloud, add `https://<your-site>/auth/google/callback` (and the localhost one) as redirect URIs, and set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`. Google never creates accounts on its own: on the sign-in page it only finds existing accounts, and new people still need a teacher's registration or invite link. Without these variables the Google buttons stay hidden.

@@ -3,6 +3,8 @@ import type { Route } from "./+types/login";
 import { prisma } from "@/lib/prisma.server";
 import { createSessionRedirect, getSession, homeFor } from "@/lib/auth/session.server";
 import { verifyPassword } from "@/lib/auth/password.server";
+import { googleConfigured } from "@/lib/auth/google.server";
+import GoogleButton from "@/components/GoogleButton";
 import FormError from "@/components/FormError";
 import GeometricPattern from "@/components/GeometricPattern";
 import Rosette from "@/components/Rosette";
@@ -17,7 +19,7 @@ export const meta: Route.MetaFunction = ({ matches }) => [{ title: metaTitle(mat
 export async function loader({ request }: Route.LoaderArgs) {
   const session = await getSession(request);
   if (session) throw redirect(homeFor(session.role));
-  return null;
+  return { google: googleConfigured(), googleProblem: new URL(request.url).searchParams.get("google") };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -39,7 +41,13 @@ export async function action({ request }: Route.ActionArgs) {
   return createSessionRedirect(user.id, user.role);
 }
 
-export default function LoginPage({ actionData }: Route.ComponentProps) {
+const GOOGLE_PROBLEMS: Record<string, string> = {
+  "no-account": "There's no account for that Google email yet. To join a class, use the registration link your teacher sent you.",
+  "has-account": "You already have an account with that Google email. Sign in below.",
+  failed: "Google sign-in didn't go through. Please try again.",
+};
+
+export default function LoginPage({ loaderData, actionData }: Route.ComponentProps) {
   const t = useT();
   const pending = useNavigation().state !== "idle";
 
@@ -74,8 +82,19 @@ export default function LoginPage({ actionData }: Route.ComponentProps) {
           <h1 className="text-3xl font-bold text-stone-900">{t("Assalamu alaikum")}</h1>
           <p className="mt-2 text-stone-500">{t("Welcome back. Sign in to see your class.")}</p>
 
-          <Form method="post" className="mt-8 space-y-5">
-            <FormError message={actionData?.error} />
+          {loaderData.google ? (
+            <div className="mt-8 space-y-5">
+              <GoogleButton href="/auth/google?for=login" label={t("Continue with Google")} />
+              <div className="flex items-center gap-3 text-xs font-medium text-stone-400">
+                <span className="h-px flex-1 bg-stone-200" />
+                {t("or with email")}
+                <span className="h-px flex-1 bg-stone-200" />
+              </div>
+            </div>
+          ) : null}
+
+          <Form method="post" className={`${loaderData.google ? "mt-5" : "mt-8"} space-y-5`}>
+            <FormError message={actionData?.error ?? (loaderData.googleProblem ? GOOGLE_PROBLEMS[loaderData.googleProblem] : undefined)} />
 
             <div>
               <label htmlFor="email" className="block text-sm font-semibold text-stone-700">

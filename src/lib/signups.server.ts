@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { prisma } from "@/lib/prisma.server";
 import { hashPassword } from "@/lib/auth/password.server";
+import { unusablePassword } from "@/lib/auth/google.server";
 import { BILLING_DAY, calculateFirstBill, parseDateOnly } from "@/lib/dates";
 import type { ActionState } from "@/lib/action-state";
 import { MAX_CHILDREN } from "@/lib/signups";
@@ -118,15 +119,20 @@ export async function declineSignup(formData: FormData): Promise<ActionState> {
 
 type SubmitResult = { error: string } | { userId: string };
 
-export async function submitSignup(token: string, formData: FormData): Promise<SubmitResult> {
+export async function submitSignup(
+  token: string,
+  formData: FormData,
+  googleEmail: string | null = null,
+): Promise<SubmitResult> {
   const open = await findOpenLink(token);
   if (!open) return { error: "This registration link has already been used or has expired. Ask your teacher for a new one." };
   const { link, programs } = open;
 
   const guardianName = str(formData, "guardianName");
   const phone = str(formData, "phone");
-  const email = str(formData, "email").toLowerCase();
-  const password = String(formData.get("password") ?? "");
+  // With Google, the email is the verified one from Google and there's no password.
+  const email = googleEmail ?? str(formData, "email").toLowerCase();
+  const password = googleEmail ? unusablePassword() : String(formData.get("password") ?? "");
   const confirmPassword = String(formData.get("confirmPassword") ?? "");
   // "self": the person signing up is the student (one place, their own name).
   // "children": a parent adding one or more children.
@@ -141,8 +147,10 @@ export async function submitSignup(token: string, formData: FormData): Promise<S
   if (!phone && !email) return { error: "Please enter a phone number or email" };
   if (!email) return { error: "Please enter your email. You'll use it to sign in." };
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "That email doesn't look right" };
-  if (password.length < 8) return { error: "Password must be at least 8 characters" };
-  if (password !== confirmPassword) return { error: "Passwords don't match" };
+  if (!googleEmail) {
+    if (password.length < 8) return { error: "Password must be at least 8 characters" };
+    if (password !== confirmPassword) return { error: "Passwords don't match" };
+  }
   if (programs.length === 0) return { error: "There are no programs to join right now. Ask your teacher." };
   if (names.filter(Boolean).length === 0) return { error: "Add at least one child" };
   if (names.length > MAX_CHILDREN) return { error: `You can add up to ${MAX_CHILDREN} children` };

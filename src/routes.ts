@@ -3,6 +3,8 @@ import { type RouteConfig, index, layout, route } from "@react-router/dev/routes
 export default [
   route("login", "routes/login.tsx"),
   route("logout", "routes/logout.ts"),
+  route("auth/google", "routes/auth.google.ts"),
+  route("auth/google/callback", "routes/auth.google.callback.ts"),
   route("invite/:token", "routes/invite.tsx"),
   route("join/:token", "routes/join.tsx"),
   route("portal", "routes/portal.tsx"),

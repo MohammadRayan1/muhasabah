@@ -37,7 +37,7 @@ async function decryptSession(token: string | undefined): Promise<SessionPayload
   }
 }
 
-function readCookie(request: Request, name: string): string | undefined {
+export function readCookie(request: Request, name: string): string | undefined {
   const header = request.headers.get("Cookie");
   if (!header) return undefined;
   for (const part of header.split(";")) {

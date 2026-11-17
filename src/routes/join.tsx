@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { Form, useNavigation } from "react-router";
-import { Plus, User, Users, X } from "lucide-react";
+import { Form, useNavigation, useParams } from "react-router";
+import { CheckCircle2, Plus, User, Users, X } from "lucide-react";
 import type { Route } from "./+types/join";
 import { findOpenLink, submitSignup } from "@/lib/signups.server";
 import { MAX_CHILDREN } from "@/lib/signups";
 import { createSessionRedirect } from "@/lib/auth/session.server";
+import { clearIdentityCookie, googleConfigured, readGoogleIdentity } from "@/lib/auth/google.server";
+import GoogleButton from "@/components/GoogleButton";
 import { calculateFirstBill, parseDateOnly, toDateInputValue } from "@/lib/dates";
 import { formatCurrency, formatDate } from "@/lib/format";
 import FormError from "@/components/FormError";
@@ -16,10 +18,13 @@ import { metaTitle, useT } from "@/lib/useT";
 
 export const meta: Route.MetaFunction = ({ matches }) => [{ title: metaTitle(matches, "Registration") }];
 
-export async function loader({ params }: Route.LoaderArgs) {
+export async function loader({ request, params }: Route.LoaderArgs) {
   const open = await findOpenLink(params.token);
   if (!open) return { link: null };
   return {
+    google: googleConfigured(),
+    googleIdentity: await readGoogleIdentity(request, params.token),
+    googleProblem: new URL(request.url).searchParams.get("google"),
     link: {
       label: open.link.label,
       programs: open.programs.map((p) => ({
@@ -36,10 +41,18 @@ export async function loader({ params }: Route.LoaderArgs) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const result = await submitSignup(params.token, await request.formData());
+  const identity = await readGoogleIdentity(request, params.token);
+  const result = await submitSignup(params.token, await request.formData(), identity?.email ?? null);
   if ("error" in result) return result;
-  return createSessionRedirect(result.userId, "MEMBER", "/portal?welcome=1");
+  const response = await createSessionRedirect(result.userId, "MEMBER", "/portal?welcome=1");
+  response.headers.append("Set-Cookie", clearIdentityCookie());
+  return response;
 }
+
+const GOOGLE_PROBLEMS: Record<string, string> = {
+  "has-account": "You already have an account with that Google email. Sign in instead, or use a different Google account.",
+  failed: "Google sign-in didn't go through. Please try again, or fill in an email and password below.",
+};
 
 type Child = { key: number; programId: string; days: number };
 type Mode = "self" | "children";
@@ -48,6 +61,8 @@ type ProgramOption = NonNullable<Route.ComponentProps["loaderData"]["link"]>["pr
 export default function JoinPage({ loaderData, actionData }: Route.ComponentProps) {
   const t = useT();
   const { link } = loaderData;
+  const googleIdentity = link ? loaderData.googleIdentity : null;
+  const token = useParams().token ?? "";
   const pending = useNavigation().state !== "idle";
   const firstProgram = link?.programs[0];
   const blankChild = (key: number): Child => ({
@@ -104,7 +119,21 @@ export default function JoinPage({ loaderData, actionData }: Route.ComponentProp
       </header>
 
       <Form method="post" className="mx-auto max-w-xl space-y-8 px-4 py-8 sm:px-6">
-        <FormError message={actionData?.error} />
+        <FormError message={actionData?.error ?? (loaderData.googleProblem ? GOOGLE_PROBLEMS[loaderData.googleProblem] : undefined)} />
+
+        {googleIdentity ? (
+          <p className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+            <CheckCircle2 aria-hidden className="h-5 w-5 shrink-0" />
+            <span>
+              {t("Signed in with Google as {email}. You won't need a password.", { email: googleIdentity.email })}
+            </span>
+          </p>
+        ) : loaderData.google ? (
+          <div className="space-y-3">
+            <GoogleButton href={`/auth/google?for=join&token=${encodeURIComponent(token)}`} label={t("Continue with Google")} />
+            <p className="text-center text-xs text-stone-500">{t("Quickest way: no password to remember. Or fill in your email and a password below.")}</p>
+          </div>
+        ) : null}
 
         <fieldset>
           <legend className="text-lg font-bold text-stone-900">{t("Who are you registering?")}</legend>
@@ -136,7 +165,7 @@ export default function JoinPage({ loaderData, actionData }: Route.ComponentProp
                 <label htmlFor="guardianName" className={label}>
                   {mode === "self" ? t("Your full name") : t("Your name (parent or guardian)")}
                 </label>
-                <input id="guardianName" name="guardianName" required autoComplete="name" className={input} />
+                <input id="guardianName" name="guardianName" required autoComplete="name" defaultValue={googleIdentity?.name ?? ""} className={input} />
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
@@ -145,30 +174,36 @@ export default function JoinPage({ loaderData, actionData }: Route.ComponentProp
                   </label>
                   <input id="phone" name="phone" type="tel" dir="ltr" autoComplete="tel" className={input} />
                 </div>
-                <div>
-                  <label htmlFor="email" className={label}>
-                    {t("Email")}
-                  </label>
-                  <input id="email" name="email" type="email" dir="ltr" required autoComplete="email" className={input} />
-                </div>
+                {googleIdentity ? null : (
+                  <div>
+                    <label htmlFor="email" className={label}>
+                      {t("Email")}
+                    </label>
+                    <input id="email" name="email" type="email" dir="ltr" required autoComplete="email" className={input} />
+                  </div>
+                )}
               </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label htmlFor="password" className={label}>
-                    {t("Choose a password")}
-                  </label>
-                  <input id="password" name="password" type="password" minLength={8} required autoComplete="new-password" className={input} />
-                </div>
-                <div>
-                  <label htmlFor="confirmPassword" className={label}>
-                    {t("Type it again")}
-                  </label>
-                  <input id="confirmPassword" name="confirmPassword" type="password" minLength={8} required autoComplete="new-password" className={input} />
-                </div>
-              </div>
-              <p className="text-xs text-stone-500">
-                {t("You'll sign in with this email and password to see your bills and receipts.")}
-              </p>
+              {googleIdentity ? null : (
+                <>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label htmlFor="password" className={label}>
+                        {t("Choose a password")}
+                      </label>
+                      <input id="password" name="password" type="password" minLength={8} required autoComplete="new-password" className={input} />
+                    </div>
+                    <div>
+                      <label htmlFor="confirmPassword" className={label}>
+                        {t("Type it again")}
+                      </label>
+                      <input id="confirmPassword" name="confirmPassword" type="password" minLength={8} required autoComplete="new-password" className={input} />
+                    </div>
+                  </div>
+                  <p className="text-xs text-stone-500">
+                    {t("You'll sign in with this email and password to see your bills and receipts.")}
+                  </p>
+                </>
+              )}
             </section>
 
             <section className="space-y-3">

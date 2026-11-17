@@ -1,20 +1,26 @@
-import { Form, useNavigation } from "react-router";
+import { Form, useNavigation, useParams } from "react-router";
 import type { Route } from "./+types/invite";
 import { prisma } from "@/lib/prisma.server";
 import { createSessionRedirect } from "@/lib/auth/session.server";
 import { hashPassword } from "@/lib/auth/password.server";
 import FormError from "@/components/FormError";
+import GoogleButton from "@/components/GoogleButton";
+import { googleConfigured } from "@/lib/auth/google.server";
 import { metaTitle, useT } from "@/lib/useT";
 
 export const meta: Route.MetaFunction = ({ matches }) => [{ title: metaTitle(matches, "Set up your account") }];
 
-export async function loader({ params }: Route.LoaderArgs) {
+export async function loader({ request, params }: Route.LoaderArgs) {
   const invite = await prisma.invite.findUnique({
     where: { token: params.token },
     include: { student: { select: { name: true } } },
   });
   if (!invite || invite.acceptedAt || invite.expiresAt < new Date()) return { invite: null };
-  return { invite: { email: invite.email, studentName: invite.student.name } };
+  return {
+    invite: { email: invite.email, studentName: invite.student.name },
+    google: googleConfigured(),
+    googleProblem: new URL(request.url).searchParams.get("google"),
+  };
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
@@ -55,6 +61,8 @@ export default function InvitePage({ loaderData, actionData }: Route.ComponentPr
   const t = useT();
   const pending = useNavigation().state !== "idle";
   const { invite } = loaderData;
+  const token = useParams().token ?? "";
+  const googleProblem = invite ? loaderData.googleProblem : null;
 
   if (!invite) {
     return (
@@ -77,8 +85,24 @@ export default function InvitePage({ loaderData, actionData }: Route.ComponentPr
         {t("Creating an account for {name}", { name: invite.studentName })} — {invite.email}
       </p>
 
+      {loaderData.google ? (
+        <div className="mb-5 space-y-4">
+          <GoogleButton href={`/auth/google?for=invite&token=${encodeURIComponent(token)}`} label={t("Continue with Google")} />
+          <p className="text-center text-xs text-stone-500">{t("Use the Google account for {email}, or choose a password below.", { email: invite.email })}</p>
+        </div>
+      ) : null}
+
       <Form method="post" className="space-y-4">
-        <FormError message={actionData?.error} />
+        <FormError
+          message={
+            actionData?.error ??
+            (googleProblem === "wrong-email"
+              ? "That Google account isn't the email this invite was sent to. Choose the right account, or set a password below."
+              : googleProblem === "failed"
+                ? "Google sign-in didn't go through. Please try again."
+                : undefined)
+          }
+        />
 
         <div>
           <label htmlFor="password" className="block text-sm font-medium text-stone-700">
