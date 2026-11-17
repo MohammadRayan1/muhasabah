@@ -18,11 +18,10 @@ Small Quran and Islamic-studies classes usually run on a notebook and memory. Wh
 |---|---|
 | **Billing on the 1st** | Everyone is billed on the 1st. Join on Nov 11 at $100/month and the first bill is $167 on Dec 1: 20 prorated days plus December. |
 | **Self sign-up with approval** | The teacher sends a one-time link. Someone signs up themselves, or a parent signs up one or more children, picking a program and how many days a week (e.g. 1–4 days of a Mon–Thu class). The price adjusts from the teacher's full price, and the teacher approves or declines. |
-| **Families** | Siblings share one parent contact and one portal, and can be marked paid in one go. |
+| **Payment proofs** | Families pay the teacher directly (Zelle, cash, etc.) and upload a screenshot from their portal. The teacher checks it, then confirms it (which records the payment and moves the due date) or marks it not accepted with a reason. The app never handles money. |
 | **Reminders** | One tap opens WhatsApp, a text or an email with a polite message already written. Optional automatic emails go out before and after the 1st. |
 | **Receipts** | Every payment gets a numbered receipt (MUH-00001) to print, save as a PDF or email. |
 | **Quran progress** | Log sabaq, sabqi, manzil and nazra by surah and ayah, with mistakes and how it went. Parents see it too. |
-| **Online payments** | Optional Stripe Checkout from the parent portal, recorded by webhook. |
 | **Revenue** | Expected vs. collected for each month, down to each payment. |
 | **English and Arabic** | A switch next to the theme toggle flips every page into Arabic, laid out right to left, with Arabic dates and surah names. |
 | **Dark mode** | On every page, including sign-in, with Gregorian and Hijri dates. |
@@ -56,7 +55,7 @@ Small Quran and Islamic-studies classes usually run on a notebook and memory. Wh
 - **Auth:** bcrypt password hashes and a signed, HTTP-only JWT cookie. Teacher and parent roles. Parents can only reach their own children (`src/lib/access.server.ts`).
 - **Billing logic** in `src/lib/dates.ts`: due dates on the 1st and prorated first bills.
 - **Netlify:** SSR through `@netlify/vite-plugin-react-router`, plus a scheduled function (`netlify/functions/send-reminders.mts`) for the daily reminder run.
-- **Stripe** (optional): Checkout sessions and a signed webhook that records each payment once, even if Stripe retries.
+- **Payment proofs:** screenshots are shrunk in the browser to about 1600px before upload and stored in Postgres; only the teacher and that family can open them (`src/routes/proof-image.ts`).
 - **Tailwind CSS 4**, with a warm olive, gold and emerald palette, Nunito and Amiri fonts, and an eight-point-star pattern.
 
 ## Run it locally
@@ -74,4 +73,3 @@ npm run dev                  # http://localhost:5173
 ### Optional setup
 
 - **Email** (invites, reminders, receipts): set `RESEND_API_KEY`. To email parents, verify a domain in Resend and set `EMAIL_FROM`.
-- **Card payments:** set `STRIPE_SECRET_KEY`, then add a Stripe webhook to `https://<your-site>/api/stripe-webhook` for `checkout.session.completed` and set `STRIPE_WEBHOOK_SECRET`.

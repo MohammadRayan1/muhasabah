@@ -19,7 +19,7 @@ type StudentWithPrograms = Student & { enrollments: { daysPerWeek: number | null
 export async function loader({ request }: Route.LoaderArgs) {
   await requireTeacher(request);
 
-  const [students, [month], programCount, pendingFamilies] = await Promise.all([
+  const [students, [month], programCount, pendingFamilies, pendingProofs] = await Promise.all([
     prisma.student.findMany({
       where: { active: true },
       orderBy: { nextDueDate: "asc" },
@@ -28,9 +28,10 @@ export async function loader({ request }: Route.LoaderArgs) {
     getMonthlyRevenue(1),
     prisma.program.count({ where: { active: true } }),
     prisma.family.count({ where: { students: { some: { pendingApproval: true } } } }),
+    prisma.paymentProof.count({ where: { status: "pending" } }),
   ]);
 
-  return { students, month, programCount, pendingFamilies, canEmail: emailConfigured() };
+  return { students, month, programCount, pendingFamilies, pendingProofs, canEmail: emailConfigured() };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -49,7 +50,7 @@ export async function action({ request }: Route.ActionArgs) {
 
 export default function Home({ loaderData }: Route.ComponentProps) {
   const t = useT();
-  const { students, month, programCount, pendingFamilies, canEmail } = loaderData;
+  const { students, month, programCount, pendingFamilies, pendingProofs, canEmail } = loaderData;
 
   const overdue = students.filter((s) => getPaymentStatus(s.nextDueDate).status === "overdue");
   const dueSoon = students.filter((s) => getPaymentStatus(s.nextDueDate).status === "due_soon");
@@ -61,6 +62,22 @@ export default function Home({ loaderData }: Route.ComponentProps) {
         <h1 className="text-3xl font-bold tracking-tight text-stone-900">{t("Assalamu alaikum")}</h1>
         <TodayLine />
       </header>
+
+      {pendingProofs > 0 ? (
+        <Link
+          to="/payments"
+          className="mb-4 flex items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-emerald-800 transition-colors hover:bg-emerald-100"
+        >
+          <span className="font-semibold">
+            {pendingProofs === 1
+              ? t("1 payment proof to check")
+              : t("{n} payment proofs to check", { n: pendingProofs })}
+          </span>
+          <span className="text-sm font-semibold">
+            {t("Review")} <Arrow />
+          </span>
+        </Link>
+      ) : null}
 
       {pendingFamilies > 0 ? (
         <Link

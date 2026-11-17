@@ -7,13 +7,14 @@ export default [
   route("join/:token", "routes/join.tsx"),
   route("portal", "routes/portal.tsx"),
   route("receipts/:paymentId", "routes/receipt.tsx"),
+  route("proofs/:id/image", "routes/proof-image.ts"),
 
   // Machine endpoints (no pages)
-  route("api/stripe-webhook", "routes/api.stripe-webhook.ts"),
   route("api/cron/reminders", "routes/api.cron-reminders.ts"),
 
   layout("routes/app-layout.tsx", [
     index("routes/dashboard.tsx"),
+    route("payments", "routes/payments.tsx"),
     route("families", "routes/families.tsx"),
     route("families/:id", "routes/family.tsx"),
     route("programs", "routes/programs.tsx"),

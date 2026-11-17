@@ -10,6 +10,7 @@ import { receiptCode } from "@/lib/reminders";
 import { formatCurrency, formatDate } from "@/lib/format";
 import type { ActionState } from "@/lib/action-state";
 import Arrow from "@/components/Arrow";
+import { paymentMethodLabel } from "@/lib/proofs";
 import GeometricPattern from "@/components/GeometricPattern";
 import { secondaryButton } from "@/components/ui";
 import { useT } from "@/lib/useT";
@@ -129,7 +130,17 @@ export default function ReceiptPage({ loaderData }: Route.ComponentProps) {
             <dt className="text-stone-500">{t("Date paid")}</dt>
             <dd className="text-stone-900">{formatDate(payment.paidAt)}</dd>
             <dt className="text-stone-500">{t("Paid by")}</dt>
-            <dd className="text-stone-900">{payment.method === "card" ? t("Card, online") : t("Recorded by teacher")}</dd>
+            <dd className="text-stone-900">
+              {t(paymentMethodLabel(payment.method))}
+              {payment.proofId ? (
+                <>
+                  {" · "}
+                  <a href={`/proofs/${payment.proofId}/image`} target="_blank" rel="noreferrer" className="text-emerald-700 hover:underline print:hidden">
+                    {t("View proof")}
+                  </a>
+                </>
+              ) : null}
+            </dd>
             {payment.note ? (
               <>
                 <dt className="text-stone-500">{t("Note")}</dt>

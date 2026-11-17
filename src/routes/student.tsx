@@ -22,6 +22,7 @@ import EditProgramsForm from "@/components/EditProgramsForm";
 import Avatar from "@/components/Avatar";
 import { useT } from "@/lib/useT";
 import { daysLabel } from "@/lib/pricing";
+import { paymentMethodLabel } from "@/lib/proofs";
 
 export const meta: Route.MetaFunction = ({ data }) => [
   { title: `${data?.student.name ?? "Student"} · Muhasabah` },
@@ -237,7 +238,9 @@ export default function StudentProfilePage({ loaderData }: Route.ComponentProps)
                   <td className="px-4 py-3 text-stone-900">{formatDate(payment.paidAt)}</td>
                   <td className="px-4 py-3 text-end text-stone-700">
                     {formatCurrency(payment.amount)}
-                    {payment.method === "card" ? <span className="ms-1 text-xs text-stone-500">{t("(online)")}</span> : null}
+                    {payment.method !== "manual" ? (
+                      <span className="block text-xs text-stone-500">{t(paymentMethodLabel(payment.method))}</span>
+                    ) : null}
                   </td>
                   <td className="px-4 py-3 text-end">
                     <Link to={`/receipts/${payment.id}`} className="text-emerald-700 hover:underline">

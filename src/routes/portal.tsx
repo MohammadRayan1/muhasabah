@@ -1,11 +1,13 @@
-import { Form, Link, redirect, useNavigation } from "react-router";
-import { CheckCircle2, CreditCard } from "lucide-react";
+import { Form, Link, redirect } from "react-router";
+import { CheckCircle2, Clock, XCircle } from "lucide-react";
 import type { Route } from "./+types/portal";
 import { daysLabel } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma.server";
 import { requireUser } from "@/lib/auth/session.server";
 import { visibleStudentIds } from "@/lib/access.server";
-import { createCheckout, stripeEnabled } from "@/lib/stripe.server";
+import { submitProof } from "@/lib/proofs.server";
+import { paymentMethodLabel } from "@/lib/proofs";
+import ProofUploadForm from "@/components/ProofUploadForm";
 import {
   amountDue,
   getPaymentStatus,
@@ -16,7 +18,7 @@ import { receiptCode } from "@/lib/reminders";
 import { formatCurrency, formatDate } from "@/lib/format";
 import FormError from "@/components/FormError";
 import { ProgressList, ProgressSummary } from "@/components/ProgressLog";
-import { card, primaryButton } from "@/components/ui";
+import { card } from "@/components/ui";
 import { metaTitle, useT } from "@/lib/useT";
 
 export const meta: Route.MetaFunction = ({ matches }) => [{ title: metaTitle(matches, "Your portal") }];
@@ -51,8 +53,12 @@ export async function loader({ request }: Route.LoaderArgs) {
   return {
     email: user?.email ?? "",
     students,
-    canPayOnline: stripeEnabled(),
-    paid: params.get("paid") === "1",
+    proofs: await prisma.paymentProof.findMany({
+      where: { studentIds: { hasSome: ids } },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+      select: { id: true, amount: true, method: true, paidOn: true, status: true, rejectReason: true, imageType: true },
+    }),
     welcome: params.get("welcome") === "1",
   };
 }
@@ -60,31 +66,8 @@ export async function loader({ request }: Route.LoaderArgs) {
 export async function action({ request }: Route.ActionArgs) {
   const session = await requireUser(request);
   const formData = await request.formData();
-  const studentId = String(formData.get("studentId") ?? "");
-
-  if (!stripeEnabled())
-    return {
-      error:
-        "Online payment isn't available yet. Please pay your teacher directly.",
-    };
-  const allowed = await visibleStudentIds(session);
-  if (!allowed.includes(studentId)) return { error: "Student not found" };
-  const target = await prisma.student.findUnique({
-    where: { id: studentId },
-    select: { pendingApproval: true },
-  });
-  if (target?.pendingApproval)
-    return { error: "Your teacher hasn't confirmed this sign-up yet." };
-
-  try {
-    throw redirect(await createCheckout(studentId));
-  } catch (error) {
-    if (error instanceof Response) throw error;
-    console.error("[stripe checkout]", error);
-    return {
-      error: "Couldn't start the payment. Please try again in a minute.",
-    };
-  }
+  if (formData.get("intent") === "proof") return submitProof(session, formData);
+  return { error: "Unknown action" };
 }
 
 function LogoutButton({ className }: { className: string }) {
@@ -103,8 +86,7 @@ export default function PortalPage({
   actionData,
 }: Route.ComponentProps) {
   const t = useT();
-  const { students, email, canPayOnline, paid, welcome } = loaderData;
-  const navigation = useNavigation();
+  const { students, email, proofs, welcome } = loaderData;
 
   if (students.length === 0) {
     return (
@@ -120,6 +102,14 @@ export default function PortalPage({
   }
 
   const familyName = students[0].family?.name;
+  const payable = students
+    .filter((s) => !s.pendingApproval)
+    .map((s) => ({
+      id: s.id,
+      name: s.name,
+      due: amountDue(s),
+      overdueOrSoon: getPaymentStatus(s.nextDueDate).status !== "ok",
+    }));
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-10">
@@ -139,18 +129,19 @@ export default function PortalPage({
         <LogoutButton className="pt-1 text-sm text-stone-500 hover:text-stone-700 hover:underline" />
       </div>
 
-      {paid ? (
-        <p className="mb-6 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
-          <CheckCircle2 className="h-4 w-4" />{" "}
-          {t("JazakAllahu khayran! Your payment went through. It can take a minute to show up below.")}
-        </p>
-      ) : null}
       {welcome ? (
         <p className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
           {t("JazakAllahu khayran for signing up! Your teacher will confirm soon. Once they do, bills and progress show up here.")}
         </p>
       ) : null}
       <FormError message={actionData?.error} />
+
+      {payable.length > 0 ? (
+        <section className="mb-10 space-y-4">
+          <ProofUploadForm students={payable} />
+          {proofs.length > 0 ? <ProofList proofs={proofs} /> : null}
+        </section>
+      ) : null}
 
       <div className="space-y-12">
         {students.map((student) => {
@@ -159,9 +150,6 @@ export default function PortalPage({
             (sum, p) => sum + p.amount,
             0,
           );
-          const paying =
-            navigation.state !== "idle" &&
-            navigation.formData?.get("studentId") === student.id;
 
           return (
             <section key={student.id} aria-labelledby={`student-${student.id}`}>
@@ -209,25 +197,6 @@ export default function PortalPage({
                         {t(STATUS_LABEL[status])}
                       </span>
                     </div>
-                    {canPayOnline ? (
-                      <Form method="post">
-                        <input
-                          type="hidden"
-                          name="studentId"
-                          value={student.id}
-                        />
-                        <button
-                          type="submit"
-                          disabled={paying}
-                          className={primaryButton}
-                        >
-                          <CreditCard className="h-4 w-4" />
-                          {paying
-                            ? t("Opening…")
-                            : t("Pay {amount} online", { amount: formatCurrency(amountDue(student)) })}
-                        </button>
-                      </Form>
-                    ) : null}
                   </div>
 
                   <div className="mb-6 grid grid-cols-2 gap-4">
@@ -311,6 +280,9 @@ export default function PortalPage({
                               </td>
                               <td className="px-4 py-3 text-end text-stone-700">
                                 {formatCurrency(payment.amount)}
+                                {payment.method !== "manual" ? (
+                                  <span className="block text-xs text-stone-500">{t(paymentMethodLabel(payment.method))}</span>
+                                ) : null}
                               </td>
                               <td className="px-4 py-3 text-end">
                                 <Link
@@ -333,5 +305,51 @@ export default function PortalPage({
         })}
       </div>
     </main>
+  );
+}
+
+type ProofRow = { id: string; amount: number; method: string; paidOn: Date; status: string; rejectReason: string | null; imageType: string | null };
+
+/** What the family has sent and where each one stands. */
+function ProofList({ proofs }: { proofs: ProofRow[] }) {
+  const t = useT();
+  return (
+    <div>
+      <h3 className="mb-2 font-bold text-stone-900">{t("Proofs you've sent")}</h3>
+      <ul className="divide-y divide-stone-200 rounded-2xl border border-stone-200 bg-white shadow-sm shadow-stone-900/5">
+        {proofs.map((p) => (
+          <li key={p.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 text-sm">
+            {p.status === "approved" ? (
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+            ) : p.status === "rejected" ? (
+              <XCircle className="h-4 w-4 shrink-0 text-red-600" />
+            ) : (
+              <Clock className="h-4 w-4 shrink-0 text-amber-600" />
+            )}
+            <span className="min-w-0 flex-1">
+              <span className="font-semibold text-stone-900 tabular-nums">{formatCurrency(p.amount)}</span>{" "}
+              <span className="text-stone-500">
+                · {t(paymentMethodLabel(p.method))} · {formatDate(p.paidOn)}
+              </span>
+              {p.status === "rejected" ? (
+                <span className="block text-red-700">
+                  {t("Not accepted")}
+                  {p.rejectReason ? `: ${p.rejectReason}` : ""}
+                </span>
+              ) : (
+                <span className={`block ${p.status === "approved" ? "text-emerald-700" : "text-amber-700"}`}>
+                  {p.status === "approved" ? t("Confirmed by your teacher") : t("Waiting for your teacher to check")}
+                </span>
+              )}
+            </span>
+            {p.imageType ? (
+              <a href={`/proofs/${p.id}/image`} target="_blank" rel="noreferrer" className="text-emerald-700 hover:underline">
+                {t("View")}
+              </a>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

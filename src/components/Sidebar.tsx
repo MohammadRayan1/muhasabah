@@ -2,7 +2,7 @@ import { Form, Link, useLocation } from "react-router";
 import {
   ClipboardList,
   BellRing,
-  Users,
+  Receipt,
   LayoutDashboard,
   BookOpen,
   TrendingUp,
@@ -18,7 +18,7 @@ const NAV_ITEMS: {
   icon: typeof LayoutDashboard;
 }[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/families", label: "Families", icon: Users },
+  { href: "/payments", label: "Payments", icon: Receipt },
   { href: "/programs", label: "Programs", icon: BookOpen },
   { href: "/signups", label: "Sign-ups", icon: ClipboardList },
   { href: "/reminders", label: "Reminders", icon: BellRing },
@@ -69,7 +69,14 @@ function Wordmark({ size }: { size: "sm" | "lg" }) {
  * App navigation. A full sidebar from md up; below that, a compact top bar with
  * the same links, so the dashboard is usable on a phone.
  */
-export default function Sidebar({ pendingSignups = 0 }: { pendingSignups?: number }) {
+export default function Sidebar({
+  pendingSignups = 0,
+  pendingProofs = 0,
+}: {
+  pendingSignups?: number;
+  pendingProofs?: number;
+}) {
+  const badges: Record<string, number> = { "/signups": pendingSignups, "/payments": pendingProofs };
   const t = useT();
   const { pathname } = useLocation();
 
@@ -118,7 +125,7 @@ export default function Sidebar({ pendingSignups = 0 }: { pendingSignups?: numbe
               }`}
             >
               {t(item.shortLabel ?? item.label)}
-              {item.href === "/signups" && pendingSignups > 0 ? <Badge count={pendingSignups} /> : null}
+              {badges[item.href] ? <Badge count={badges[item.href]} /> : null}
             </Link>
           ))}
         </nav>
@@ -150,7 +157,7 @@ export default function Sidebar({ pendingSignups = 0 }: { pendingSignups?: numbe
               >
                 <Icon className="h-5 w-5 shrink-0" strokeWidth={2} />
                 {t(item.label)}
-                {item.href === "/signups" && pendingSignups > 0 ? <Badge count={pendingSignups} /> : null}
+                {badges[item.href] ? <Badge count={badges[item.href]} /> : null}
               </Link>
             );
           })}

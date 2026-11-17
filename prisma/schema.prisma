@@ -131,10 +131,35 @@ model Payment {
   paidAt          DateTime @default(now())
   note            String?
   receiptNumber   Int      @unique @default(autoincrement())
-  // "manual" when the teacher records it, "card" when paid online through Stripe
+  // "manual" when the teacher marks it paid, otherwise how the family says they
+  // paid ("zelle", "venmo", "cash", ...) when it came from an uploaded proof.
   method          String   @default("manual")
-  stripeSessionId String?  @unique
+  proofId         String?
+  proof           PaymentProof? @relation(fields: [proofId], references: [id], onDelete: SetNull)
   createdAt       DateTime @default(now())
+}
+
+// A family's "I paid" message: a screenshot of the Zelle (or other) transfer, the
+// amount and which children it covers. The app never moves money; the teacher
+// looks at the proof and confirms it, which records the payments.
+model PaymentProof {
+  id            String    @id @default(cuid())
+  studentIds    String[]
+  amount        Float
+  paidOn        DateTime
+  method        String
+  note          String?
+  // Downscaled JPEG/PNG/WebP, kept in the database (a few hundred KB each).
+  image         Bytes?
+  imageType     String?
+  status        String    @default("pending") // pending | approved | rejected
+  rejectReason  String?
+  submittedById String?
+  reviewedAt    DateTime?
+  payments      Payment[]
+  createdAt     DateTime  @default(now())
+
+  @@index([status, createdAt])
 }
 
 model Program {
