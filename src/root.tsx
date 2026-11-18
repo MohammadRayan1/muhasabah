@@ -47,7 +47,7 @@ export const meta: Route.MetaFunction = () => [
 // first, otherwise follow the device's light/dark setting.
 const themeScript = `(function(){try{var t=localStorage.getItem(${JSON.stringify(
   THEME_STORAGE_KEY,
-)});if(t==="dark"||(!t&&window.matchMedia("(prefers-color-scheme: dark)").matches)){document.documentElement.classList.add("dark")}if(localStorage.getItem(${JSON.stringify(TEXT_SIZE_KEY)})==="large"){document.documentElement.classList.add("text-large")}}catch(e){}})();`;
+)});if(t==="dark"||(!t&&window.matchMedia("(prefers-color-scheme: dark)").matches)){document.documentElement.classList.add("dark")}var z=localStorage.getItem(${JSON.stringify(TEXT_SIZE_KEY)});if(z==="small"||z==="large"||z==="xlarge"){document.documentElement.dataset.textSize=z}}catch(e){}})();`;
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const lang = useLang();

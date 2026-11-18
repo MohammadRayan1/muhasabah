@@ -77,8 +77,8 @@ export const TEACHER_TOUR: TourStep[] = [
   },
   {
     target: "language",
-    title: "Arabic and dark mode",
-    body: "These two buttons switch the whole app to Arabic, laid out right to left, and between light and dark. They're on every page, including for parents.",
+    title: "Text size, Arabic and dark mode",
+    body: "AA makes the text bigger or smaller, ع switches the whole app to Arabic, laid out right to left, and the last button switches between light and dark. They're on every page, including for parents, and each person's device remembers their choice.",
   },
   {
     path: "/",
@@ -111,8 +111,8 @@ export const PARENT_TOUR: TourStep[] = [
   },
   {
     target: "language",
-    title: "Arabic and dark mode",
-    body: "Switch the portal to Arabic or to dark mode any time with these buttons.",
+    title: "Text size, Arabic and dark mode",
+    body: "Make the text bigger with AA, or switch the portal to Arabic or dark mode, any time with these buttons.",
   },
   {
     target: "tour-button",
