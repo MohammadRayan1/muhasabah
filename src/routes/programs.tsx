@@ -1,7 +1,9 @@
 import { Form } from "react-router";
 import { useState } from "react";
-import { CalendarDays, ChevronDown, Clock, MapPin, Pencil, Plus, Trash2 } from "lucide-react";
+import { Archive, BookOpen, CalendarDays, ChevronDown, Clock, MapPin, Pencil, Plus } from "lucide-react";
+import ConfirmButton from "@/components/ConfirmButton";
 import type { Route } from "./+types/programs";
+import { withToast } from "@/lib/toast.server";
 import { prisma } from "@/lib/prisma.server";
 import { requireTeacher } from "@/lib/auth/session.server";
 import { createProgram, setProgramActive, updateProgram } from "@/lib/mutations.server";
@@ -10,18 +12,19 @@ import NewProgramForm from "@/components/NewProgramForm";
 import ProgramEditForm from "@/components/ProgramEditForm";
 import { dayChoices, daysLabel, priceForDays } from "@/lib/pricing";
 import PageHeader from "@/components/PageHeader";
-import { pageWidth } from "@/components/ui";
+import EmptyState from "@/components/EmptyState";
+import { pageWidth, secondaryButton } from "@/components/ui";
 import { metaTitle, useT } from "@/lib/useT";
 
 export const meta: Route.MetaFunction = ({ matches }) => [{ title: metaTitle(matches, "Programs") }];
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireTeacher(request);
-  const programs = await prisma.program.findMany({
-    where: { active: true },
-    orderBy: { createdAt: "asc" },
-  });
-  return { programs };
+  const [programs, archived] = await Promise.all([
+    prisma.program.findMany({ where: { active: true }, orderBy: { createdAt: "asc" } }),
+    prisma.program.findMany({ where: { active: false }, orderBy: { name: "asc" }, select: { id: true, name: true, days: true, time: true } }),
+  ]);
+  return { programs, archived };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -29,12 +32,19 @@ export async function action({ request }: Route.ActionArgs) {
   const formData = await request.formData();
   switch (formData.get("intent")) {
     case "createProgram":
-      return createProgram(formData);
+      return withToast(await createProgram(formData), "Program added");
     case "updateProgram":
-      return updateProgram(formData);
-    case "removeProgram":
+      return withToast(await updateProgram(formData), "Changes saved");
+    case "removeProgram": {
       formData.set("active", "false");
-      return setProgramActive(formData);
+      const programId = String(formData.get("programId") ?? "");
+      return withToast(await setProgramActive(formData), "Program archived. Students already in it keep their classes.", {
+        undo: { kind: "program-archive", programId },
+      });
+    }
+    case "restoreProgram":
+      formData.set("active", "true");
+      return withToast(await setProgramActive(formData), "Program restored");
     default:
       return { error: "Unknown action" };
   }
@@ -43,6 +53,8 @@ export async function action({ request }: Route.ActionArgs) {
 export default function ProgramsPage({ loaderData }: Route.ComponentProps) {
   const t = useT();
   const { programs } = loaderData;
+  // Places already used, offered as suggestions so they needn't be typed again.
+  const locations = [...new Set(programs.map((p) => p.location).filter(Boolean))];
 
   return (
     <div className={pageWidth}>
@@ -52,25 +64,31 @@ export default function ProgramsPage({ loaderData }: Route.ComponentProps) {
       />
 
       {programs.length === 0 ? (
-        <p className="mb-8 text-sm text-stone-500">
-          {t("No programs yet. Add one below, e.g. “Weekday Program”, Mon–Fri, 5:00–7:00 PM, $150/month, where people can choose 2, 4 or all 5 days.")}
-        </p>
+        <div className="mb-8">
+          <EmptyState
+            icon={BookOpen}
+            title={t("No programs yet")}
+            body={t("Add your first class below. You'll tap the days it meets, pick the time, and set a monthly price.")}
+          />
+        </div>
       ) : (
         <div className="mb-8 space-y-4">
           {programs.map((program) => (
-            <ProgramCard key={program.id} program={program} />
+            <ProgramCard key={program.id} program={program} locations={locations} />
           ))}
         </div>
       )}
 
-      <AddProgram startOpen={programs.length === 0} />
+      <AddProgram startOpen={programs.length === 0} locations={locations} />
+
+      {loaderData.archived.length > 0 ? <ArchivedPrograms programs={loaderData.archived} /> : null}
     </div>
   );
 }
 
 type ProgramRow = Route.ComponentProps["loaderData"]["programs"][number];
 
-function ProgramCard({ program }: { program: ProgramRow }) {
+function ProgramCard({ program, locations }: { program: ProgramRow; locations: string[] }) {
   const t = useT();
   const [editing, setEditing] = useState(false);
 
@@ -111,24 +129,19 @@ function ProgramCard({ program }: { program: ProgramRow }) {
             <Pencil aria-hidden className="h-3.5 w-3.5" />
             {t("Edit")}
           </button>
-          <Form method="post">
+          <ConfirmButton
+            label={t("Remove")}
+            question={t("Archive {name}?", { name: program.name })}
+            confirmLabel={t("Yes, archive")}
+          >
             <input type="hidden" name="intent" value="removeProgram" />
             <input type="hidden" name="programId" value={program.id} />
-            <input type="hidden" name="active" value="false" />
-            <button
-              type="submit"
-              aria-label={t("Remove {name}", { name: program.name })}
-              title={t("Remove")}
-              className="flex h-10 w-10 items-center justify-center rounded-xl text-stone-400 transition-colors hover:bg-red-50 hover:text-red-700"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
-          </Form>
+          </ConfirmButton>
         </div>
       </div>
       {editing ? (
         <div className="mt-6">
-          <ProgramEditForm program={program} onDone={() => setEditing(false)} />
+          <ProgramEditForm program={program} onDone={() => setEditing(false)} locations={locations} />
         </div>
       ) : null}
     </div>
@@ -136,7 +149,7 @@ function ProgramCard({ program }: { program: ProgramRow }) {
 }
 
 /** "Add a program" stays a single line until the teacher opens it. */
-function AddProgram({ startOpen }: { startOpen: boolean }) {
+function AddProgram({ startOpen, locations }: { startOpen: boolean; locations: string[] }) {
   const t = useT();
   const [open, setOpen] = useState(startOpen);
 
@@ -162,9 +175,41 @@ function AddProgram({ startOpen }: { startOpen: boolean }) {
       </h2>
       {open ? (
         <div id="add-program" className="border-t border-stone-100 px-6 py-6 sm:px-7">
-          <NewProgramForm onCreated={() => setOpen(false)} />
+          <NewProgramForm onCreated={() => setOpen(false)} locations={locations} />
         </div>
       ) : null}
     </section>
+  );
+}
+
+function ArchivedPrograms({ programs }: { programs: Route.ComponentProps["loaderData"]["archived"] }) {
+  const t = useT();
+  return (
+    <details className="group mt-10">
+      <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-xl px-1 text-base font-semibold text-stone-700 [&::-webkit-details-marker]:hidden">
+        <Archive aria-hidden className="h-5 w-5 text-stone-500" />
+        {t("Archived programs")} <span className="font-normal text-stone-500 tabular-nums">{programs.length}</span>
+      </summary>
+      <p className="mt-1 mb-3 text-[15px] text-stone-600">{t("Programs you removed. Restore one to offer it again.")}</p>
+      <ul className="divide-y divide-stone-100 overflow-hidden rounded-2xl border border-stone-200/80 bg-white">
+        {programs.map((p) => (
+          <li key={p.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
+            <span>
+              <span className="block font-semibold text-stone-900">{p.name}</span>
+              <span className="block text-sm text-stone-600">
+                {p.days} · {p.time}
+              </span>
+            </span>
+            <Form method="post">
+              <input type="hidden" name="intent" value="restoreProgram" />
+              <input type="hidden" name="programId" value={p.id} />
+              <button type="submit" className={secondaryButton}>
+                {t("Restore")}
+              </button>
+            </Form>
+          </li>
+        ))}
+      </ul>
+    </details>
   );
 }

@@ -4,7 +4,7 @@ import { requireTeacher } from "@/lib/auth/session.server";
 import { getMonthDetail } from "@/lib/reports.server";
 import { resetMonthPayments } from "@/lib/mutations.server";
 import { formatCurrency, formatMonth, formatDate } from "@/lib/format";
-import Arrow from "@/components/Arrow";
+import BackLink from "@/components/BackLink";
 import ResetMonthButton from "@/components/ResetMonthButton";
 import { pageTitle, pageWidth } from "@/components/ui";
 import { useT } from "@/lib/useT";
@@ -34,9 +34,7 @@ export default function MonthDetailPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className={pageWidth}>
-      <Link to="/reports" className="text-sm text-stone-500 hover:underline">
-        <Arrow back /> {t("Back to Monthly Revenue")}
-      </Link>
+      <BackLink to="/reports" label={t("Back to Revenue Reports")} />
 
       <div className="mt-4 mb-6 flex flex-wrap items-center justify-between gap-4">
         <h1 className={pageTitle}>{formatMonth(detail.slug)}</h1>

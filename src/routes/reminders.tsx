@@ -1,6 +1,7 @@
 import { Form, Link } from "react-router";
 import { CheckCircle2, CircleAlert } from "lucide-react";
 import type { Route } from "./+types/reminders";
+import { withToast } from "@/lib/toast.server";
 import { prisma } from "@/lib/prisma.server";
 import { requireTeacher } from "@/lib/auth/session.server";
 import { emailConfigured } from "@/lib/email.server";
@@ -10,6 +11,7 @@ import { OVERDUE_DAYS, reminderContact, UPCOMING_DAYS } from "@/lib/reminders";
 import { formatCurrency, formatDate } from "@/lib/format";
 import RemindMenu from "@/components/RemindMenu";
 import PageHeader from "@/components/PageHeader";
+import EmptyState from "@/components/EmptyState";
 import { card, sectionTitle, pageWidth } from "@/components/ui";
 import { metaTitle, useT } from "@/lib/useT";
 
@@ -39,7 +41,7 @@ export async function action({ request }: Route.ActionArgs) {
   switch (formData.get("intent")) {
     case "sendEmail": {
       const result = await sendManualReminder(String(formData.get("studentId") ?? ""));
-      return result.sent ? { ok: true, message: "Reminder emailed" } : { error: result.error };
+      return result.sent ? withToast({ ok: true }, "Reminder emailed") : { error: result.error };
     }
     case "toggleAuto":
       await prisma.settings.upsert({
@@ -47,7 +49,7 @@ export async function action({ request }: Route.ActionArgs) {
         update: { autoEmailReminders: formData.get("on") === "true" },
         create: { id: 1, autoEmailReminders: formData.get("on") === "true" },
       });
-      return { ok: true };
+      return withToast({ ok: true }, formData.get("on") === "true" ? "Automatic email reminders turned on" : "Automatic email reminders turned off");
     default:
       return { error: "Unknown action" };
   }
@@ -72,9 +74,11 @@ export default function RemindersPage({ loaderData }: Route.ComponentProps) {
           {t("Students to remind")} <span className="font-semibold text-stone-500 tabular-nums">{needing.length}</span>
         </h2>
         {needing.length === 0 ? (
-          <p className={`${card} flex items-center gap-2 text-sm text-stone-600`}>
-            <CheckCircle2 className="h-5 w-5 text-emerald-600" /> {t("Alhamdulillah, nobody is due this week.")}
-          </p>
+          <EmptyState
+            icon={CheckCircle2}
+            title={t("Alhamdulillah, nobody is due this week.")}
+            body={t("Anyone who is late or due in the next 7 days will show up here with a ready-made reminder.")}
+          />
         ) : (
           <ul className="divide-y divide-stone-200 rounded-2xl border border-stone-200 bg-white shadow-sm shadow-stone-900/5">
             {needing.map((s) => {
@@ -94,7 +98,7 @@ export default function RemindersPage({ loaderData }: Route.ComponentProps) {
                         : t("due {date}", { date: formatDate(s.nextDueDate) })}
                     </p>
                     <p className="truncate text-xs text-stone-500">
-                      {[s.family?.name, contact.phone, contact.email].filter(Boolean).join(" · ") ||
+                      {[s.family?.guardianName, contact.phone, contact.email].filter(Boolean).join(" · ") ||
                         t("No phone or email saved")}
                     </p>
                   </div>
@@ -110,7 +114,7 @@ export default function RemindersPage({ loaderData }: Route.ComponentProps) {
         <h2 className={sectionTitle}>{t("Automatic email reminders")}</h2>
         <div className={`${card} space-y-3`}>
           <p className="text-sm text-stone-600">
-            {t("When this is on, each family gets one email {before} days before the 1st, and one more {after} days after if it's still unpaid. It never sends the same reminder twice.", { before: UPCOMING_DAYS, after: OVERDUE_DAYS })}
+            {t("When this is on, each parent or student gets one email {before} days before the 1st, and one more {after} days after if it's still unpaid. It never sends the same reminder twice.", { before: UPCOMING_DAYS, after: OVERDUE_DAYS })}
           </p>
           {!canEmail ? (
             <p className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">

@@ -53,6 +53,24 @@
   --font-arabic: "Amiri", serif;
 }
 
+/* Readable for everyone, including older teachers: 17px base (Tailwind sizes are in
+   rem, so everything scales with it), and a larger setting people can switch on. */
+html {
+  font-size: 17px;
+}
+/* Scales every size evenly, including pixel-sized labels and icons. */
+html.text-large body {
+  zoom: 1.15;
+}
+
+/* Secondary text a step darker than Tailwind's stone, so it stays easy to read
+   (stone-500 on ivory is about 5.9:1). Dark mode sets its own below. */
+:root {
+  --color-stone-400: #8b847b;
+  --color-stone-500: #645e57;
+  --color-stone-600: #514c46;
+}
+
 /* The action green. White text on 600 clears WCAG AA (about 6:1). */
 :root {
   --color-emerald-50: #eef6f1;
@@ -166,6 +184,11 @@ dialog.sheet[open]::backdrop {
   animation: sheet-in 260ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 
+/* Confirmation messages rise from the bottom edge. */
+.toast-in {
+  animation: sheet-in 260ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
 /* Very slow turn for the large star behind the sign-in wordmark. */
 @keyframes turn {
   to {
@@ -225,6 +248,7 @@ a {
   .slow-turn,
   dialog.sheet[open],
   .tour-card,
+  .toast-in,
   dialog.sheet[open]::backdrop,
   .nav-progress.is-busy {
     animation: none;
@@ -299,6 +323,7 @@ html[lang="ar"] body {
   --color-stone-500: #9d978c;
   --color-stone-600: #b5afa4;
   --color-stone-700: #cfc9be;
+  --color-stone-800: #e4dfd5;
   --color-stone-900: #f2eee6;
 
   /* Tinted backgrounds/borders for status badges and alerts */

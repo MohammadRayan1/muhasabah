@@ -1,17 +1,20 @@
-import { data, Form, Link } from "react-router";
+import { data, Link } from "react-router";
 import type { Route } from "./+types/student";
+import { withToast } from "@/lib/toast.server";
 import { prisma } from "@/lib/prisma.server";
 import { requireTeacher } from "@/lib/auth/session.server";
 import {
   appUrl,
   createInvite,
-  setStudentFamily,
+  updateContact,
   updateStudentPrograms,
 } from "@/lib/mutations.server";
 import { emailConfigured } from "@/lib/email.server";
 import { receiptCode } from "@/lib/reminders";
 import RemindMenu from "@/components/RemindMenu";
-import { input, secondaryButton, pageWidth, pageTitle } from "@/components/ui";
+import BackLink from "@/components/BackLink";
+import AutoSaveForm from "@/components/AutoSaveForm";
+import { card, input, label, pageWidth, pageTitle } from "@/components/ui";
 import { getPaymentStatus, STATUS_BADGE_STYLES, STATUS_LABEL } from "@/lib/status";
 import { formatCurrency, formatDate } from "@/lib/format";
 import SendInviteForm from "@/components/SendInviteForm";
@@ -28,7 +31,7 @@ export const meta: Route.MetaFunction = ({ data }) => [
 export async function loader({ request, params }: Route.LoaderArgs) {
   await requireTeacher(request);
 
-  const [student, activePrograms, families] = await Promise.all([
+  const [student, activePrograms] = await Promise.all([
     prisma.student.findUnique({
       where: { id: params.id },
       include: {
@@ -40,7 +43,6 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       },
     }),
     prisma.program.findMany({ where: { active: true }, orderBy: { createdAt: "asc" } }),
-    prisma.family.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
 
   if (!student) throw data("Not found", { status: 404 });
@@ -48,7 +50,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   const pendingInvite = student.invites.find((invite) => invite.expiresAt > new Date()) ?? null;
   const inviteUrl = pendingInvite ? `${appUrl(request)}/invite/${pendingInvite.token}` : null;
 
-  return { student, activePrograms, families, pendingInvite, inviteUrl, canEmail: emailConfigured() };
+  return { student, activePrograms, pendingInvite, inviteUrl, canEmail: emailConfigured() };
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
@@ -57,11 +59,11 @@ export async function action({ request, params }: Route.ActionArgs) {
   formData.set("studentId", params.id);
   switch (formData.get("intent")) {
     case "updatePrograms":
-      return updateStudentPrograms(formData);
+      return withToast(await updateStudentPrograms(formData), "Programs and tuition saved");
     case "invite":
-      return createInvite(formData);
-    case "setFamily":
-      return setStudentFamily(formData);
+      return withToast(await createInvite(formData), "Portal invite created");
+    case "updateContact":
+      return updateContact(formData);
     default:
       return { error: "Unknown action" };
   }
@@ -69,21 +71,25 @@ export async function action({ request, params }: Route.ActionArgs) {
 
 export default function StudentProfilePage({ loaderData }: Route.ComponentProps) {
   const t = useT();
-  const { student, activePrograms, families, pendingInvite, inviteUrl, canEmail } = loaderData;
+  const { student, activePrograms, pendingInvite, inviteUrl, canEmail } = loaderData;
   const siblings = student.family?.students.filter((s) => s.id !== student.id) ?? [];
   const { status } = getPaymentStatus(student.nextDueDate);
   const totalPaid = student.payments.reduce((sum, p) => sum + p.amount, 0);
 
   return (
     <div className={pageWidth}>
+      <BackLink to="/roster" label={t("Back to Students")} />
       <div className="mb-6 flex items-start justify-between">
         <div className="flex items-center gap-4">
           <Avatar name={student.name} size="lg" />
           <div>
             <h1 className={pageTitle}>{student.name}</h1>
-            <p className="text-sm text-stone-500">
-              {[student.phone, student.email].filter(Boolean).join(" · ") || t("No contact info")}
-            </p>
+            <p className="text-[15px] font-medium text-stone-700">{t("Joined {date}", { date: formatDate(student.joinedAt) })}</p>
+            {student.phone || student.email ? (
+              <p className="text-sm text-stone-500">{[student.phone, student.email].filter(Boolean).join(" · ")}</p>
+            ) : student.family ? null : (
+              <p className="text-sm text-stone-500">{t("No contact info")}</p>
+            )}
           </div>
         </div>
         <div className="flex flex-col items-end gap-2">
@@ -119,42 +125,60 @@ export default function StudentProfilePage({ loaderData }: Route.ComponentProps)
         </div>
       </div>
 
-      <div className="mb-8">
-        <h2 className="mb-3 text-lg font-medium text-stone-900">{t("Family")}</h2>
-        {student.family ? (
-          <p className="mb-3 text-sm text-stone-600">
-            {t("In the family:")}{" "}
-            <Link to={`/families/${student.family.id}`} className="font-semibold text-emerald-700 hover:underline">
-              {student.family.name}
-            </Link>
-            {siblings.length > 0 ? ` · ${t("with {names}", { names: siblings.map((s) => s.name).join(", ") })}` : ""}
+      <section className="mb-8">
+        <h2 className="mb-1 text-lg font-semibold text-stone-900">{student.family ? t("Parent") : t("Contact")}</h2>
+        {siblings.length > 0 ? (
+          <p className="mb-3 text-[15px] text-stone-600">
+            {t("Also registered by this parent:")}{" "}
+            {siblings.map((s, i) => (
+              <span key={s.id}>
+                {i > 0 ? ", " : ""}
+                <Link to={`/students/${s.id}`} className="font-semibold text-emerald-700 hover:underline">
+                  {s.name}
+                </Link>
+              </span>
+            ))}
           </p>
-        ) : (
-          <p className="mb-3 text-sm text-stone-500">{t("Not in a family. Add siblings to one so their parent sees them together.")}</p>
-        )}
-        <Form method="post" className="flex flex-wrap items-end gap-2">
-          <input type="hidden" name="intent" value="setFamily" />
-          <div className="min-w-48 flex-1">
-            <label htmlFor="familyId" className="sr-only">
-              {t("Family")}
-            </label>
-            <select id="familyId" name="familyId" defaultValue={student.familyId ?? ""} key={student.familyId ?? "none"} className={input}>
-              <option value="">{t("No family")}</option>
-              {families.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.name}
-                </option>
-              ))}
-            </select>
+        ) : null}
+        <AutoSaveForm intent="updateContact" className={`${card} space-y-4`}>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {student.family ? (
+              <div className="sm:col-span-2">
+                <label htmlFor="guardianName" className={label}>
+                  {t("Parent's name")}
+                </label>
+                <input id="guardianName" name="guardianName" defaultValue={student.family.guardianName ?? ""} className={input} />
+              </div>
+            ) : null}
+            <div>
+              <label htmlFor="contactPhone" className={label}>
+                {t("Phone (for WhatsApp / text)")}
+              </label>
+              <input
+                id="contactPhone"
+                name="phone"
+                type="tel"
+                dir="ltr"
+                defaultValue={(student.family ? student.family.phone : student.phone) ?? ""}
+                className={input}
+              />
+            </div>
+            <div>
+              <label htmlFor="contactEmail" className={label}>
+                {t("Email")}
+              </label>
+              <input
+                id="contactEmail"
+                name="email"
+                type="email"
+                dir="ltr"
+                defaultValue={(student.family ? student.family.email : student.email) ?? ""}
+                className={input}
+              />
+            </div>
           </div>
-          <button type="submit" className={secondaryButton}>
-            {t("Save")}
-          </button>
-          <Link to="/roster" className="min-h-11 px-2 py-3 text-sm text-stone-500 hover:underline">
-            {t("New family…")}
-          </Link>
-        </Form>
-      </div>
+        </AutoSaveForm>
+      </section>
 
       <div className="mb-8">
         <h2 className="mb-3 text-lg font-medium text-stone-900">{t("Programs")}</h2>

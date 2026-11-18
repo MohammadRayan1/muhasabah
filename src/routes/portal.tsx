@@ -2,6 +2,7 @@ import { Form, Link, redirect } from "react-router";
 import { useEffect, useState } from "react";
 import { ArrowDown, CalendarDays, Compass, CheckCircle2, Clock, LogOut, MapPin, Receipt as ReceiptIcon, XCircle } from "lucide-react";
 import type { Route } from "./+types/portal";
+import { withToast } from "@/lib/toast.server";
 import { daysLabel } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma.server";
 import { requireUser } from "@/lib/auth/session.server";
@@ -65,7 +66,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 export async function action({ request }: Route.ActionArgs) {
   const session = await requireUser(request);
   const formData = await request.formData();
-  if (formData.get("intent") === "proof") return submitProof(session, formData);
+  if (formData.get("intent") === "proof") return withToast(await submitProof(session, formData), "Payment sent to your teacher");
   return { error: "Unknown action" };
 }
 
@@ -111,7 +112,7 @@ export default function PortalPage({
   }
 
   const family = students[0].family;
-  const heading = students.length > 1 && family?.name ? family.name : students[0].name;
+  const heading = students.length > 1 ? students.map((s) => s.name.split(" ")[0]).join(" & ") : students[0].name;
   const greetingName = family?.guardianName?.split(" ")[0] ?? students[0].name.split(" ")[0];
   const active = students.filter((s) => !s.pendingApproval);
   const payable = active.map((s) => ({
@@ -134,7 +135,7 @@ export default function PortalPage({
       <header className="relative overflow-hidden bg-sidebar text-sidebar-foreground">
         <GeometricPattern className="text-sidebar-foreground opacity-[0.06]" />
         <div className="relative mx-auto max-w-2xl px-4 pt-6 pb-24 sm:px-6">
-          <div className="flex items-center justify-between gap-4 pe-24">
+          <div className="flex items-center justify-between gap-4 pe-36">
             <p className="flex items-baseline gap-2 text-sm font-semibold text-sidebar-muted">
               Muhasabah
               <span lang="ar" className="font-arabic text-base font-normal text-gold">

@@ -29,7 +29,7 @@ export default function NewSignupLinkForm({ hasPrograms }: { hasPrograms: boolea
         <label htmlFor="label" className={label}>
           {t("Link name")} <span className="font-normal text-stone-500">{t("(only you see this)")}</span>
         </label>
-        <input id="label" name="label" placeholder={t("e.g. Ahmed, or the Khan family")} className={input} />
+        <input id="label" name="label" placeholder={t("e.g. Ahmed, or Sister Fatima")} className={input} />
         <p className="mt-1 text-xs text-stone-500">
           {t("They'll choose whether it's for themselves or their children, then a program and how many days a week. Prices come from your Programs page.")}
         </p>

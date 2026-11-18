@@ -1,6 +1,8 @@
-import { Form, Link, useFetcher } from "react-router";
+import { useState } from "react";
+import { Form, useFetcher } from "react-router";
 import { MessageCircle, UserCheck } from "lucide-react";
 import type { Route } from "./+types/signups";
+import { withToast } from "@/lib/toast.server";
 import { prisma } from "@/lib/prisma.server";
 import { requireTeacher } from "@/lib/auth/session.server";
 import { appUrl } from "@/lib/mutations.server";
@@ -12,8 +14,8 @@ import type { ActionState } from "@/lib/action-state";
 import FormError from "@/components/FormError";
 import NewSignupLinkForm from "@/components/NewSignupLinkForm";
 import CopyLinkButton from "@/components/CopyLinkButton";
-import Arrow from "@/components/Arrow";
 import PageHeader from "@/components/PageHeader";
+import EmptyState from "@/components/EmptyState";
 import { card, input, primaryButton, sectionTitle, pageWidth } from "@/components/ui";
 import { metaTitle, useT } from "@/lib/useT";
 
@@ -60,13 +62,36 @@ export async function action({ request }: Route.ActionArgs) {
   const formData = await request.formData();
   switch (formData.get("intent")) {
     case "createLink":
-      return createSignupLink(formData);
+      return withToast(await createSignupLink(formData), "Registration link created. Copy it or send it on WhatsApp.");
     case "revokeLink":
-      return revokeSignupLink(formData);
-    case "approve":
-      return approveSignup(formData);
+      return withToast(await revokeSignupLink(formData), "Link turned off");
+    case "approve": {
+      // Snapshot what approval changes, so Undo can put the registration back.
+      const familyId = String(formData.get("familyId") ?? "");
+      const [family, pending] = await Promise.all([
+        prisma.family.findUnique({ where: { id: familyId } }),
+        prisma.student.findMany({ where: { familyId, pendingApproval: true } }),
+      ]);
+      const result = await approveSignup(formData);
+      const familyGone = family ? !(await prisma.family.findUnique({ where: { id: familyId } })) : false;
+      return withToast(result, pending.length === 1 ? "{name} approved" : "Registration approved", {
+        vars: { name: pending[0]?.name ?? "" },
+        undo: {
+          kind: "signup-approve",
+          familyId,
+          students: pending.map((s) => ({
+            id: s.id,
+            tuitionAmount: s.tuitionAmount,
+            firstPaymentAmount: s.firstPaymentAmount,
+            nextDueDate: s.nextDueDate.toISOString(),
+          })),
+          removedFamily:
+            familyGone && family ? { name: family.name, guardianName: family.guardianName, phone: family.phone, email: family.email } : null,
+        },
+      });
+    }
     case "decline":
-      return declineSignup(formData);
+      return withToast(await declineSignup(formData), "Registration declined");
     default:
       return { error: "Unknown action" };
   }
@@ -94,9 +119,11 @@ export default function SignupsPage({ loaderData }: Route.ComponentProps) {
           {t("Pending approval")} <span className="font-semibold text-stone-500 tabular-nums">{waiting.length}</span>
         </h2>
         {waiting.length === 0 ? (
-          <p className={`${card} flex items-center gap-2 text-sm text-stone-500`}>
-            <UserCheck className="h-5 w-5 text-stone-400" /> {t("No registrations awaiting approval.")}
-          </p>
+          <EmptyState
+            icon={UserCheck}
+            title={t("No one is waiting for approval")}
+            body={t("Create a registration link below and send it to a parent or student. When they fill it in, they'll appear here for you to approve.")}
+          />
         ) : (
           <div className="space-y-4">
             {waiting.map(({ family, students }) => (
@@ -153,10 +180,6 @@ export default function SignupsPage({ loaderData }: Route.ComponentProps) {
                         </Form>
                       </div>
                     </>
-                  ) : link.familyId ? (
-                    <Link to={`/families/${link.familyId}`} className="text-sm text-emerald-700 hover:underline">
-                      {t("See family")} <Arrow />
-                    </Link>
                   ) : null}
                 </li>
               );
@@ -183,6 +206,7 @@ function PendingFamily({ family, students }: PendingProps) {
   const t = useT();
   const fetcher = useFetcher<ActionState>();
   const busy = fetcher.state !== "idle";
+  const [declining, setDeclining] = useState(false);
   const intent = fetcher.formData?.get("intent");
   // Someone who signed up themselves: one student, no separate parent.
   const individual = !family.guardianName && students.length === 1;
@@ -192,18 +216,16 @@ function PendingFamily({ family, students }: PendingProps) {
       <input type="hidden" name="familyId" value={family.id} />
       <div>
         <p className="flex flex-wrap items-center gap-2 text-lg font-bold text-stone-900">
-          {family.name}
-          <span className="rounded-full border border-stone-200 bg-stone-50 px-2 py-0.5 text-xs font-semibold text-stone-600">
+          {individual ? students[0].name : (family.guardianName ?? family.name)}
+          <span className="rounded-full border border-stone-200 bg-stone-50 px-2.5 py-0.5 text-sm font-semibold text-stone-700">
             {individual
-              ? t("Individual")
+              ? t("Registered themselves")
               : students.length > 1
-                ? t("Family · {n} children", { n: students.length })
-                : t("Family")}
+                ? t("Parent · {n} children", { n: students.length })
+                : t("Parent · 1 child")}
           </span>
         </p>
-        <p className="text-sm text-stone-500">
-          {[family.guardianName, family.phone, family.email].filter(Boolean).join(" · ")}
-        </p>
+        <p className="text-[15px] text-stone-600">{[family.phone, family.email].filter(Boolean).join(" · ")}</p>
       </div>
 
       <ul className="space-y-3">
@@ -250,18 +272,34 @@ function PendingFamily({ family, students }: PendingProps) {
         <button type="submit" name="intent" value="approve" disabled={busy} className={primaryButton}>
           {busy && intent === "approve" ? t("Approving…") : students.length > 1 ? t("Approve all {n}", { n: students.length }) : t("Approve")}
         </button>
-        <button
-          type="submit"
-          name="intent"
-          value="decline"
-          disabled={busy}
-          onClick={(e) => {
-            if (!window.confirm(t("Decline {name}? Their registration and login will be removed.", { name: family.name }))) e.preventDefault();
-          }}
-          className="min-h-11 rounded-xl px-3 text-sm font-semibold text-stone-500 hover:text-red-700"
-        >
-          {busy && intent === "decline" ? t("Declining…") : t("Decline")}
-        </button>
+        {declining ? (
+          <span className="flex flex-wrap items-center gap-2">
+            <span className="text-[15px] font-medium text-stone-700">
+              {t("Decline {name}? Their registration and login will be removed.", { name: individual ? students[0].name : (family.guardianName ?? family.name) })}
+            </span>
+            <button
+              type="submit"
+              name="intent"
+              value="decline"
+              disabled={busy}
+              autoFocus
+              className="min-h-12 rounded-xl bg-red-600 px-4 text-base font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+            >
+              {busy && intent === "decline" ? t("Declining…") : t("Yes, decline")}
+            </button>
+            <button type="button" onClick={() => setDeclining(false)} className="min-h-12 rounded-xl px-3 text-base font-semibold text-stone-600 hover:text-stone-900">
+              {t("Cancel")}
+            </button>
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setDeclining(true)}
+            className="min-h-12 rounded-xl border border-stone-300 px-4 text-base font-semibold text-stone-700 hover:border-red-200 hover:bg-red-50 hover:text-red-700"
+          >
+            {t("Decline")}
+          </button>
+        )}
       </div>
     </fetcher.Form>
   );

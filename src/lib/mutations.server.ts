@@ -1,5 +1,4 @@
 import { randomBytes } from "node:crypto";
-import { redirect } from "react-router";
 import { prisma } from "@/lib/prisma.server";
 import { monthBounds } from "@/lib/reports.server";
 import { sendInviteEmail, sendReceiptEmail } from "@/lib/email.server";
@@ -116,45 +115,6 @@ export async function emailReceipt(formData: FormData): Promise<ActionState> {
   return { ok: true, message: `Receipt emailed to ${to}` };
 }
 
-function familyFields(formData: FormData) {
-  return {
-    name: str(formData, "name"),
-    guardianName: str(formData, "guardianName") || null,
-    phone: str(formData, "phone") || null,
-    email: str(formData, "email") || null,
-  };
-}
-
-export async function createFamily(formData: FormData): Promise<ActionState> {
-  const data = familyFields(formData);
-  if (!data.name) return { error: "Family name is required" };
-  const family = await prisma.family.create({ data });
-  throw redirect(`/families/${family.id}`);
-}
-
-export async function updateFamily(formData: FormData): Promise<ActionState> {
-  const familyId = str(formData, "familyId");
-  const data = familyFields(formData);
-  if (!data.name) return { error: "Family name is required" };
-  await prisma.family.update({ where: { id: familyId }, data });
-  return { ok: true, message: "Saved" };
-}
-
-export async function deleteFamily(formData: FormData): Promise<ActionState> {
-  const familyId = str(formData, "familyId");
-  // Students stay; they're just no longer grouped.
-  await prisma.family.delete({ where: { id: familyId } });
-  throw redirect("/roster");
-}
-
-export async function setStudentFamily(formData: FormData): Promise<ActionState> {
-  const studentId = str(formData, "studentId");
-  const familyId = str(formData, "familyId") || null;
-  if (!studentId) return { error: "Missing student" };
-  await prisma.student.update({ where: { id: studentId }, data: { familyId } });
-  return { ok: true };
-}
-
 export async function resetMonthPayments(formData: FormData): Promise<ActionState> {
   const month = str(formData, "month");
   if (!/^\d{4}-\d{2}$/.test(month)) return { error: "Invalid month" };
@@ -164,6 +124,26 @@ export async function resetMonthPayments(formData: FormData): Promise<ActionStat
   await prisma.payment.deleteMany({
     where: { paidAt: { gte: monthStart, lte: monthEnd } },
   });
+  return { ok: true };
+}
+
+/**
+ * Contact details on a student's page: the parent's when a parent registered them
+ * (shared with brothers and sisters), otherwise the student's own.
+ */
+export async function updateContact(formData: FormData): Promise<ActionState> {
+  const studentId = str(formData, "studentId");
+  const student = await prisma.student.findUnique({ where: { id: studentId }, select: { familyId: true } });
+  if (!student) return { error: "Student not found" };
+  const phone = str(formData, "phone") || null;
+  const email = str(formData, "email").toLowerCase() || null;
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "That email doesn't look right" };
+  if (student.familyId) {
+    const guardianName = str(formData, "guardianName") || null;
+    await prisma.family.update({ where: { id: student.familyId }, data: { guardianName, phone, email } });
+  } else {
+    await prisma.student.update({ where: { id: studentId }, data: { phone, email } });
+  }
   return { ok: true };
 }
 

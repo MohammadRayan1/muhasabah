@@ -60,14 +60,16 @@ export default function PaymentsCalendar({ students, payments }: { students: Cal
     <section aria-labelledby="calendar-title" className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm shadow-stone-900/5">
       <header className="flex flex-wrap items-center justify-between gap-4 border-b border-stone-200 px-5 py-4">
         <div className="flex items-center gap-1">
-          <button type="button" onClick={() => move(-1)} aria-label={t("Previous month")} className="flex h-9 w-9 items-center justify-center rounded-full text-stone-500 hover:bg-stone-100 hover:text-stone-900">
-            <ChevronLeft className="h-5 w-5 rtl:-scale-x-100" />
+          <button type="button" onClick={() => move(-1)} className="inline-flex min-h-11 items-center gap-1 rounded-xl px-3 text-[15px] font-semibold text-stone-600 hover:bg-stone-100 hover:text-stone-900">
+            <ChevronLeft aria-hidden className="h-5 w-5 rtl:-scale-x-100" />
+            {t("Previous")}
           </button>
           <h2 id="calendar-title" className="min-w-40 text-center text-lg font-bold text-stone-900">
             {title}
           </h2>
-          <button type="button" onClick={() => move(1)} aria-label={t("Next month")} className="flex h-9 w-9 items-center justify-center rounded-full text-stone-500 hover:bg-stone-100 hover:text-stone-900">
-            <ChevronRight className="h-5 w-5 rtl:-scale-x-100" />
+          <button type="button" onClick={() => move(1)} className="inline-flex min-h-11 items-center gap-1 rounded-xl px-3 text-[15px] font-semibold text-stone-600 hover:bg-stone-100 hover:text-stone-900">
+            {t("Next")}
+            <ChevronRight aria-hidden className="h-5 w-5 rtl:-scale-x-100" />
           </button>
         </div>
         <dl className="flex gap-6 text-sm tabular-nums">

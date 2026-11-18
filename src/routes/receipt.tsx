@@ -114,10 +114,9 @@ export default function ReceiptPage({ loaderData }: Route.ComponentProps) {
             <dd className="font-semibold text-stone-900">{student.name}</dd>
             {student.family ? (
               <>
-                <dt className="text-stone-500">{t("Family")}</dt>
+                <dt className="text-stone-500">{t("Parent")}</dt>
                 <dd className="text-stone-900">
-                  {student.family.name}
-                  {student.family.guardianName ? ` · ${student.family.guardianName}` : ""}
+                  {student.family.guardianName ?? student.family.name}
                 </dd>
               </>
             ) : null}

@@ -1,4 +1,5 @@
 import {
+  data,
   isRouteErrorResponse,
   Links,
   Meta,
@@ -8,8 +9,11 @@ import {
 } from "react-router";
 import type { Route } from "./+types/root";
 import ThemeToggle from "@/components/ThemeToggle";
+import TextSizeToggle, { TEXT_SIZE_KEY } from "@/components/TextSizeToggle";
 import LanguageToggle from "@/components/LanguageToggle";
 import NavProgress from "@/components/NavProgress";
+import Toaster from "@/components/Toaster";
+import { readToast } from "@/lib/toast.server";
 import FontSwitcher from "@/components/FontSwitcher";
 import { THEME_STORAGE_KEY } from "@/lib/theme";
 import { langFromCookie, setCurrentLang } from "@/lib/i18n";
@@ -29,7 +33,9 @@ export const links: Route.LinksFunction = () => [
 ];
 
 export function loader({ request }: Route.LoaderArgs) {
-  return { lang: langFromCookie(request.headers.get("Cookie")) };
+  const lang = langFromCookie(request.headers.get("Cookie"));
+  const { toast, clear } = readToast(request);
+  return data({ lang, toast }, clear ? { headers: { "Set-Cookie": clear } } : undefined);
 }
 
 export const meta: Route.MetaFunction = () => [
@@ -41,7 +47,7 @@ export const meta: Route.MetaFunction = () => [
 // first, otherwise follow the device's light/dark setting.
 const themeScript = `(function(){try{var t=localStorage.getItem(${JSON.stringify(
   THEME_STORAGE_KEY,
-)});if(t==="dark"||(!t&&window.matchMedia("(prefers-color-scheme: dark)").matches)){document.documentElement.classList.add("dark")}}catch(e){}})();`;
+)});if(t==="dark"||(!t&&window.matchMedia("(prefers-color-scheme: dark)").matches)){document.documentElement.classList.add("dark")}if(localStorage.getItem(${JSON.stringify(TEXT_SIZE_KEY)})==="large"){document.documentElement.classList.add("text-large")}}catch(e){}})();`;
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const lang = useLang();
@@ -59,6 +65,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         {children}
         <LanguageToggle />
         <ThemeToggle />
+        <TextSizeToggle />
         {import.meta.env.DEV ? <FontSwitcher /> : null}
         <ScrollRestoration />
         <Scripts />
@@ -72,6 +79,7 @@ export default function App() {
     <>
       <NavProgress />
       <Outlet />
+      <Toaster />
     </>
   );
 }

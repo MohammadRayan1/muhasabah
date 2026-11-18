@@ -109,7 +109,7 @@ export default function ProofUploadForm({ students }: { students: PayableStudent
             {students.map((s) => (
               <label
                 key={s.id}
-                className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm ${
+                className={`flex min-h-12 cursor-pointer items-center gap-2.5 rounded-xl border px-4 text-base ${
                   selected.has(s.id) ? "border-emerald-600 bg-emerald-50" : "border-stone-300"
                 }`}
               >
@@ -119,6 +119,7 @@ export default function ProofUploadForm({ students }: { students: PayableStudent
                   value={s.id}
                   checked={selected.has(s.id)}
                   onChange={(e) => toggle(s.id, e.target.checked)}
+                  className="h-5 w-5"
                 />
                 <span>
                   {s.name} <span className="text-stone-500 tabular-nums">{formatCurrency(s.due)}</span>
@@ -131,7 +132,31 @@ export default function ProofUploadForm({ students }: { students: PayableStudent
         <input type="hidden" name="studentIds" value={students[0]?.id} />
       )}
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <fieldset>
+        <legend className={label}>{t("How did you pay?")}</legend>
+        <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {Object.entries(PROOF_METHODS).map(([key, name]) => (
+            <label
+              key={key}
+              className={`flex min-h-12 cursor-pointer items-center justify-center rounded-xl border px-3 text-center text-base font-semibold transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-emerald-600 ${
+                method === key ? "border-emerald-600 bg-emerald-600 text-white" : "border-stone-300 bg-white text-stone-800 hover:bg-stone-50"
+              }`}
+            >
+              <input
+                type="radio"
+                name="method"
+                value={key}
+                checked={method === key}
+                onChange={() => setMethod(key as ProofMethod)}
+                className="sr-only"
+              />
+              {t(name)}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
+      <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor="proof-amount" className={label}>
             {t("Amount paid")}
@@ -147,24 +172,6 @@ export default function ProofUploadForm({ students }: { students: PayableStudent
             onChange={(e) => setAmountEdited(e.target.value)}
             className={input}
           />
-        </div>
-        <div>
-          <label htmlFor="proof-method" className={label}>
-            {t("How you paid")}
-          </label>
-          <select
-            id="proof-method"
-            name="method"
-            value={method}
-            onChange={(e) => setMethod(e.target.value as ProofMethod)}
-            className={input}
-          >
-            {Object.entries(PROOF_METHODS).map(([key, name]) => (
-              <option key={key} value={key}>
-                {t(name)}
-              </option>
-            ))}
-          </select>
         </div>
         <div>
           <label htmlFor="proof-date" className={label}>

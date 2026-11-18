@@ -54,7 +54,7 @@ export default function RecordPaymentDialog({
       <button
         type="button"
         onClick={() => ref.current?.showModal()}
-        className="inline-flex h-10 items-center gap-2 rounded-xl bg-emerald-600 px-3.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
+        className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-[15px] font-semibold text-white transition-colors hover:bg-emerald-700"
       >
         {t("Record payment")}
         {proofs.length > 0 ? (
@@ -85,7 +85,7 @@ export default function RecordPaymentDialog({
             type="button"
             onClick={() => ref.current?.close()}
             aria-label={t("Close")}
-            className="-me-2 flex h-9 w-9 items-center justify-center rounded-full text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-900"
+            className="-me-2 flex h-11 w-11 items-center justify-center rounded-full text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-900"
           >
             <X className="h-5 w-5" />
           </button>
@@ -95,11 +95,11 @@ export default function RecordPaymentDialog({
           <section aria-labelledby={`proofs-${student.id}`}>
             <h3 id={`proofs-${student.id}`} className="mb-3 flex items-center gap-2 text-sm font-bold text-stone-900">
               <FileImage aria-hidden className="h-4 w-4 text-stone-500" />
-              {t("Submitted by the family")}
+              {t("Submitted by the parent or student")}
             </h3>
             {proofs.length === 0 ? (
               <p className="rounded-2xl border border-dashed border-stone-300 px-4 py-4 text-sm leading-relaxed text-stone-500">
-                {t("Nothing submitted yet. Families submit every payment, including cash, from their portal. Once they do, you can confirm it here.")}
+                {t("Nothing submitted yet. Parents and students submit every payment, including cash, from their portal. Once they do, you can confirm it here.")}
               </p>
             ) : (
               <ul className="space-y-3">

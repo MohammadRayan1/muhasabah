@@ -7,7 +7,7 @@ export const TEACHER_TOUR: TourStep[] = [
   {
     path: "/",
     title: "Welcome to Muhasabah",
-    body: "This short tour walks you through running your class here: setting up programs, registering families, and keeping track of tuition. It takes about two minutes. Use the arrow keys or the buttons to move along.",
+    body: "This short tour walks you through running your class here: setting up programs, registering students, and keeping track of tuition. It takes about two minutes. Use the arrow keys or the buttons to move along.",
   },
   {
     path: "/",
@@ -17,21 +17,21 @@ export const TEACHER_TOUR: TourStep[] = [
   },
   {
     path: "/",
+    target: "todo",
+    title: "To do",
+    body: "The day's jobs, most important first: payments sent to you to check, new registrations to approve, and students to remind. Tap one to go straight there. When nothing needs you, it says you're all caught up.",
+  },
+  {
+    path: "/",
     target: "ledger",
     title: "This month's money",
     body: "What families have paid this month against what was expected, with the bar filling as payments come in. Below it, how many students are overdue, due this week, or upcoming.",
   },
   {
     path: "/",
-    target: "quick-cards",
-    title: "What needs you",
-    body: "Payment Review shows payments families have submitted for you to check. Registration shows new sign-ups waiting for your approval. A gold dot means something is waiting.",
-  },
-  {
-    path: "/",
     target: "students-list",
     title: "Your students",
-    body: "Everyone in your class, most urgent first. Open Record payment to review what a family submitted, or Remind to send a polite message on WhatsApp, text or email.",
+    body: "Everyone in your class, most urgent first. Open Record payment to review what a parent or student submitted, or Remind to send a polite message on WhatsApp, text or email.",
   },
   {
     path: "/programs",
@@ -42,7 +42,7 @@ export const TEACHER_TOUR: TourStep[] = [
   {
     path: "/signups",
     target: "create-link",
-    title: "Step 2: invite families",
+    title: "Step 2: invite students",
     body: "Create a one-time registration link and send it on WhatsApp or by text. A parent registers their children, or an adult registers themselves, picking a program, days and a start date.",
   },
   {
@@ -54,14 +54,14 @@ export const TEACHER_TOUR: TourStep[] = [
   {
     path: "/roster",
     target: "students-table",
-    title: "Students and families",
-    body: "A spreadsheet of everyone, grouped by family, with people who registered themselves at the end. Sort any column, search, filter by status, open Upcoming for a calendar of the month, or download it for Excel.",
+    title: "Your students",
+    body: "A spreadsheet of everyone, with each student's parent and contact details. Sort any column, search, filter by status, open Upcoming for a calendar of the month, or download it for Excel. Click a name to open that student.",
   },
   {
     path: "/payments",
     target: "to-confirm",
     title: "Payment review",
-    body: "Families pay you directly, by Zelle, cash or any other way, and submit each payment from their portal. Check it against what you received, then confirm it or say why it wasn't accepted. The app never handles money.",
+    body: "Parents and students pay you directly, by Zelle, cash or any other way, and submit each payment from their portal. Check it against what you received, then confirm it or say why it wasn't accepted. The app never handles money.",
   },
   {
     path: "/reminders",

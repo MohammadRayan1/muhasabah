@@ -29,7 +29,7 @@ const MONEY_ITEMS: NavItem[] = [
 ];
 
 function isActive(pathname: string, href: string) {
-  if (href === "/roster") return pathname.startsWith("/roster") || pathname.startsWith("/families");
+  if (href === "/roster") return pathname.startsWith("/roster") || pathname.startsWith("/students");
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
 }
 
@@ -79,7 +79,7 @@ export default function Sidebar({
         key={it.href}
         to={it.href}
         aria-current={active ? "page" : undefined}
-        className={`group flex h-10 items-center gap-3 rounded-xl px-3 text-sm transition-colors ${
+        className={`group flex h-12 items-center gap-3 rounded-xl px-3 text-[15px] transition-colors ${
           active
             ? "bg-nav-active-bg font-semibold text-nav-active-fg"
             : "font-medium text-nav-foreground hover:bg-stone-100/80"
@@ -101,7 +101,7 @@ export default function Sidebar({
       {/* Phone / small tablet */}
       <header className="border-b border-nav-border bg-nav px-4 pt-4 pb-3 md:hidden">
         {/* pe-28 leaves room for the fixed language and theme toggles */}
-        <div className="flex items-center justify-between pe-24">
+        <div className="flex items-center justify-between pe-36">
           <Link to="/" aria-label={t("Muhasabah, go to dashboard")} className="flex items-center gap-2.5">
             <Mark />
             {lang === "ar" ? (
@@ -137,7 +137,7 @@ export default function Sidebar({
             type="button"
             onClick={onStartTour}
             data-tour="tour-button"
-            className="order-last flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-sm font-medium text-nav-muted hover:bg-stone-100 hover:text-nav-foreground"
+            className="order-last flex h-10 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-[15px] font-medium text-nav-muted hover:bg-stone-100 hover:text-nav-foreground"
           >
             <Compass className="h-3.5 w-3.5" />
             {t("Tour")}
@@ -147,7 +147,7 @@ export default function Sidebar({
               key={it.href}
               to={it.href}
               aria-current={isActive(pathname, it.href) ? "page" : undefined}
-              className={`flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-sm transition-colors ${
+              className={`flex h-10 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-[15px] transition-colors ${
                 isActive(pathname, it.href)
                   ? "bg-nav-active-bg font-semibold text-nav-active-fg"
                   : "font-medium text-nav-muted hover:bg-stone-100 hover:text-nav-foreground"
@@ -161,7 +161,7 @@ export default function Sidebar({
       </header>
 
       {/* Desktop */}
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-e border-nav-border bg-nav px-3 py-5 md:flex">
+      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col overflow-y-auto border-e border-nav-border bg-nav px-3 py-5 [scrollbar-width:thin] md:flex">
         <Link
           to="/"
           aria-label={t("Muhasabah, go to dashboard")}
@@ -179,18 +179,18 @@ export default function Sidebar({
           </span>
         </Link>
 
-        <nav className="flex flex-1 flex-col overflow-y-auto">
+        <nav className="flex flex-1 shrink-0 flex-col">
           <div className="space-y-0.5">{CLASS_ITEMS.map(item)}</div>
-          <p className="mt-6 mb-1.5 px-3 text-xs font-medium text-nav-muted">{t("Money")}</p>
+          <p className="mt-6 mb-1.5 px-3 text-sm font-medium text-nav-muted">{t("Money")}</p>
           <div className="space-y-0.5">{MONEY_ITEMS.map(item)}</div>
         </nav>
 
-        <div className="mt-4 rounded-2xl border border-gold-line bg-gold-wash p-4">
+        <div className="mt-4 shrink-0 rounded-2xl border border-gold-line bg-gold-wash p-4">
           <p className="text-sm font-semibold text-stone-900">{t("Grow your class")}</p>
-          <p className="mt-0.5 text-xs leading-relaxed text-stone-600">{t("Send a registration link to a new family.")}</p>
+          <p className="mt-0.5 text-sm leading-relaxed text-stone-600 [@media(max-height:800px)]:hidden">{t("Send a registration link to a new student or parent.")}</p>
           <Link
             to="/signups#new-link"
-            className="mt-3 flex h-9 items-center justify-center gap-2 rounded-xl bg-emerald-600 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
+            className="mt-3 flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 text-[15px] font-semibold text-white transition-colors hover:bg-emerald-700"
           >
             <UserPlus className="h-4 w-4" strokeWidth={2.25} />
             {t("New registration link")}
@@ -201,7 +201,7 @@ export default function Sidebar({
           type="button"
           onClick={onStartTour}
           data-tour="tour-button"
-          className="mt-3 flex h-10 w-full items-center justify-between rounded-xl px-3 text-sm font-medium text-nav-foreground transition-colors hover:bg-stone-100/80"
+          className="mt-3 flex h-12 w-full items-center justify-between rounded-xl px-3 text-[15px] font-medium text-nav-foreground transition-colors hover:bg-stone-100/80"
         >
           {t("Take the tour")}
           <Compass className="h-4 w-4 shrink-0 text-nav-muted" strokeWidth={1.9} />
@@ -210,7 +210,7 @@ export default function Sidebar({
         <Form method="post" action="/logout" className="mt-1 border-t border-nav-border pt-1">
           <button
             type="submit"
-            className="flex h-10 w-full items-center justify-between rounded-xl px-3 text-sm font-medium text-nav-muted transition-colors hover:bg-stone-100/80 hover:text-nav-foreground"
+            className="flex h-12 w-full items-center justify-between rounded-xl px-3 text-[15px] font-medium text-nav-muted transition-colors hover:bg-stone-100/80 hover:text-nav-foreground"
           >
             {t("Log out")}
             <LogOut className="h-4 w-4 shrink-0 rtl:-scale-x-100" strokeWidth={1.9} />

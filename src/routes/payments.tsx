@@ -5,12 +5,14 @@ import type { Route } from "./+types/payments";
 import { prisma } from "@/lib/prisma.server";
 import { requireTeacher } from "@/lib/auth/session.server";
 import { approveProof, rejectProof } from "@/lib/proofs.server";
+import { withToast } from "@/lib/toast.server";
 import { amountDue } from "@/lib/status";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { paymentMethodLabel } from "@/lib/proofs";
 import type { ActionState } from "@/lib/action-state";
 import FormError from "@/components/FormError";
 import PageHeader from "@/components/PageHeader";
+import EmptyState from "@/components/EmptyState";
 import { card, input, primaryButton, sectionTitle, pageWidth } from "@/components/ui";
 import { metaTitle, useT } from "@/lib/useT";
 
@@ -69,10 +71,24 @@ export async function action({ request }: Route.ActionArgs) {
   await requireTeacher(request);
   const formData = await request.formData();
   switch (formData.get("intent")) {
-    case "approve":
-      return approveProof(formData);
+    case "approve": {
+      // Remember each child's due date first, so Undo can put it back.
+      const proofId = String(formData.get("proofId") ?? "");
+      const proof = await prisma.paymentProof.findUnique({ where: { id: proofId }, select: { studentIds: true } });
+      const before = await prisma.student.findMany({
+        where: { id: { in: proof?.studentIds ?? [] } },
+        select: { id: true, nextDueDate: true, firstPaymentAmount: true },
+      });
+      return withToast(await approveProof(formData), "Payment confirmed", {
+        undo: {
+          kind: "proof-approve",
+          proofId,
+          students: before.map((s) => ({ id: s.id, nextDueDate: s.nextDueDate.toISOString(), firstPaymentAmount: s.firstPaymentAmount })),
+        },
+      });
+    }
     case "reject":
-      return rejectProof(formData);
+      return withToast(await rejectProof(formData), "Marked as not accepted. The parent will see your reason.");
     default:
       return { error: "Unknown action" };
   }
@@ -89,7 +105,7 @@ export default function PaymentsPage({ loaderData }: Route.ComponentProps) {
       <PageHeader
         title={t("Payments")}
         description={t(
-          "Families pay you directly (Zelle, cash and so on) and send a screenshot here. Check it against your bank or app, then confirm it to mark them paid, or say why it wasn't accepted.",
+          "Parents and students pay you directly, by Zelle, cash or any other way, and tell you here. Check each one against what you received, then confirm it or say why it wasn't accepted.",
         )}
       />
 
@@ -98,9 +114,11 @@ export default function PaymentsPage({ loaderData }: Route.ComponentProps) {
           {t("To confirm")} <span className="font-semibold text-stone-500 tabular-nums">{pending.length}</span>
         </h2>
         {pending.length === 0 ? (
-          <p className={`${card} flex items-center gap-2 text-sm text-stone-500`}>
-            <Inbox className="h-5 w-5 text-stone-400" /> {t("Nothing to check right now.")}
-          </p>
+          <EmptyState
+            icon={Inbox}
+            title={t("Nothing to check right now")}
+            body={t("When a parent or student tells you they've paid, by Zelle, cash or any other way, it shows up here for you to confirm.")}
+          />
         ) : (
           <div className="space-y-4">
             {pending.map((proof) => (
@@ -111,37 +129,73 @@ export default function PaymentsPage({ loaderData }: Route.ComponentProps) {
       </section>
 
       {reviewed.length > 0 ? (
-        <section>
-          <h2 className={sectionTitle}>{t("Reviewed payment proofs")}</h2>
-          <ul className="divide-y divide-stone-200 rounded-2xl border border-stone-200 bg-white shadow-sm shadow-stone-900/5">
-            {reviewed.map((proof) => (
-              <li key={proof.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 text-sm sm:px-5">
-                <span className="min-w-0 flex-1 basis-48">
-                  <span className="font-semibold text-stone-900">{who(proof)}</span>
-                  <span className="block text-stone-500">
-                    {formatCurrency(proof.amount)} · {t(paymentMethodLabel(proof.method))} · {formatDate(proof.paidOn)}
-                    {proof.rejectReason ? ` · ${proof.rejectReason}` : ""}
-                  </span>
-                </span>
-                {proof.imageType ? (
-                  <a href={`/proofs/${proof.id}/image`} target="_blank" rel="noreferrer" className="text-emerald-700 hover:underline">
-                    {t("View proof")}
-                  </a>
-                ) : null}
-                <StatusPill status={proof.status} />
-              </li>
-            ))}
-          </ul>
+        <section className="space-y-8">
+          <h2 className="text-xl font-semibold text-stone-900">{t("Reviewed payments")}</h2>
+          <ReviewedList
+            title={t("Approved")}
+            note={t("Recorded as paid. Each has a receipt.")}
+            proofs={reviewed.filter((p) => p.status === "approved")}
+          />
+          <ReviewedList
+            title={t("Not approved")}
+            note={t("You marked these as not accepted. The parent or student sees your reason.")}
+            proofs={reviewed.filter((p) => p.status === "rejected")}
+          />
         </section>
       ) : null}
     </div>
   );
 }
 
-function who(proof: Proof) {
-  const family = proof.students[0]?.family;
-  const names = proof.students.map((s) => s.name).join(", ");
-  return family && proof.students.length > 1 ? `${family.name} · ${names}` : names;
+/** One reviewed group (approved or not). Each student's name opens their page. */
+function ReviewedList({ title, note, proofs }: { title: string; note: string; proofs: Proof[] }) {
+  const t = useT();
+  return (
+    <div>
+      <h3 className="text-lg font-semibold text-stone-900">
+        {title} <span className="font-normal text-stone-500 tabular-nums">{proofs.length}</span>
+      </h3>
+      <p className="mb-3 text-[15px] text-stone-600">{note}</p>
+      {proofs.length === 0 ? (
+        <p className="rounded-2xl border border-dashed border-stone-300 px-5 py-4 text-[15px] text-stone-600">{t("None yet.")}</p>
+      ) : (
+        <ul className="divide-y divide-stone-100 overflow-hidden rounded-2xl border border-stone-200/80 bg-white">
+          {proofs.map((proof) => (
+            <li key={proof.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-4">
+              <span className="min-w-0 flex-1 basis-56">
+                <span className="flex flex-wrap gap-x-3 gap-y-1">
+                  {proof.students.map((s) => (
+                    <Link
+                      key={s.id}
+                      to={`/students/${s.id}`}
+                      className="inline-flex min-h-8 items-center text-base font-semibold text-emerald-700 underline-offset-4 hover:underline"
+                    >
+                      {s.name}
+                    </Link>
+                  ))}
+                </span>
+                <span className="block text-[15px] text-stone-600">
+                  {formatCurrency(proof.amount)} · {t(paymentMethodLabel(proof.method))} · {formatDate(proof.paidOn)}
+                  {proof.rejectReason ? ` · ${proof.rejectReason}` : ""}
+                </span>
+              </span>
+              {proof.imageType ? (
+                <a
+                  href={`/proofs/${proof.id}/image`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex min-h-11 items-center rounded-xl border border-stone-300 px-4 text-[15px] font-semibold text-stone-700 hover:bg-stone-50"
+                >
+                  {t("View screenshot")}
+                </a>
+              ) : null}
+              <StatusPill status={proof.status} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
 }
 
 function StatusPill({ status }: { status: string }) {
@@ -197,13 +251,7 @@ function PendingProof({ proof }: { proof: Proof }) {
             {t(paymentMethodLabel(proof.method))} · {t("paid {date}", { date: formatDate(proof.paidOn) })}
           </p>
           <p className="text-xs text-stone-500">
-            {family ? (
-              <Link to={`/families/${family.id}`} className="hover:underline">
-                {family.guardianName ? `${family.guardianName} · ` : ""}
-                {family.name}
-              </Link>
-            ) : null}
-            {" · "}
+            {family?.guardianName ? `${t("From {name}", { name: family.guardianName })} · ` : ""}
             {t("sent {date}", { date: formatDate(proof.createdAt) })}
           </p>
           {proof.note ? <p className="mt-1 rounded-lg bg-stone-50 px-2 py-1 text-sm text-stone-700">“{proof.note}”</p> : null}

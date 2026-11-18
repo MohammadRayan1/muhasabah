@@ -1,6 +1,7 @@
 import { Link } from "react-router";
-import { BookOpen, Check, ChevronRight, ClipboardList, FileCheck2, Sheet, UserPlus, Users } from "lucide-react";
+import { BellRing, BookOpen, Check, ChevronRight, ClipboardList, FileCheck2, UserPlus, Users } from "lucide-react";
 import type { Route } from "./+types/dashboard";
+import { withToast } from "@/lib/toast.server";
 import { prisma } from "@/lib/prisma.server";
 import { requireTeacher } from "@/lib/auth/session.server";
 import { getMonthlyRevenue } from "@/lib/reports.server";
@@ -44,9 +45,15 @@ export async function action({ request }: Route.ActionArgs) {
   await requireTeacher(request);
   const formData = await request.formData();
   switch (formData.get("intent")) {
-    case "removeStudent":
+    case "removeStudent": {
       formData.set("active", "false");
-      return setStudentActive(formData);
+      const studentId = String(formData.get("studentId") ?? "");
+      const student = await prisma.student.findUnique({ where: { id: studentId }, select: { name: true } });
+      return withToast(await setStudentActive(formData), "{name} moved to Archived", {
+        vars: { name: student?.name ?? "" },
+        undo: { kind: "student-archive", studentId },
+      });
+    }
     default:
       return { error: "Unknown action" };
   }
@@ -73,6 +80,10 @@ export default function Home({ loaderData }: Route.ComponentProps) {
         <TodayHeading />
       </header>
 
+      {students.length > 0 || pendingFamilies > 0 ? (
+        <TodoList proofs={pendingProofs} registrations={pendingFamilies} toRemind={overdue.length + dueSoon.length} />
+      ) : null}
+
       {students.length === 0 ? (
         <GettingStarted hasPrograms={programCount > 0} />
       ) : (
@@ -83,28 +94,6 @@ export default function Home({ loaderData }: Route.ComponentProps) {
               month={month}
               counts={{ overdue: overdue.length, dueSoon: dueSoon.length, ok: ok.length }}
             />
-            <div data-tour="quick-cards" className="grid gap-4 md:col-span-3 md:grid-cols-3">
-              <QuickCard
-                to="/payments"
-                icon={FileCheck2}
-                label={t("Payment Review")}
-                title={pendingProofs === 0 ? t("Nothing to check") : pendingProofs === 1 ? t("1 proof to check") : t("{n} proofs to check", { n: pendingProofs })}
-                attention={pendingProofs > 0}
-              />
-              <QuickCard
-                to="/signups"
-                icon={ClipboardList}
-                label={t("Registration")}
-                title={pendingFamilies === 0 ? t("No one waiting") : pendingFamilies === 1 ? t("1 awaiting approval") : t("{n} awaiting approval", { n: pendingFamilies })}
-                attention={pendingFamilies > 0}
-              />
-              <QuickCard
-                to="/roster"
-                icon={Sheet}
-                label={t("Students")}
-                title={students.length === 1 ? t("1 student") : t("{n} students", { n: students.length })}
-              />
-            </div>
           </div>
 
           <section data-tour="students-list" aria-labelledby="students-title" className="overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-[0_1px_2px_rgb(28_25_23/0.04)]">
@@ -129,36 +118,59 @@ export default function Home({ loaderData }: Route.ComponentProps) {
   );
 }
 
-function QuickCard({
-  to,
-  icon: Icon,
-  label,
-  title,
-  attention = false,
-}: {
-  to: string;
-  icon: typeof Users;
-  label: string;
-  title: string;
-  attention?: boolean;
-}) {
+/** The day's jobs as plain, one-tap buttons, most important first. */
+function TodoList({ proofs, registrations, toRemind }: { proofs: number; registrations: number; toRemind: number }) {
+  const t = useT();
+  const items = [
+    proofs > 0 && {
+      to: "/payments",
+      icon: FileCheck2,
+      text: proofs === 1 ? t("Check 1 payment sent to you") : t("Check {n} payments sent to you", { n: proofs }),
+    },
+    registrations > 0 && {
+      to: "/signups",
+      icon: ClipboardList,
+      text: registrations === 1 ? t("Approve 1 new registration") : t("Approve {n} new registrations", { n: registrations }),
+    },
+    toRemind > 0 && {
+      to: "/reminders",
+      icon: BellRing,
+      text: toRemind === 1 ? t("Remind 1 student about tuition") : t("Remind {n} students about tuition", { n: toRemind }),
+    },
+  ].filter(Boolean) as { to: string; icon: typeof Users; text: string }[];
+
   return (
-    <Link
-      to={to}
-      className="group flex flex-col justify-between gap-6 rounded-2xl border border-stone-200/80 bg-white p-5 shadow-[0_1px_2px_rgb(28_25_23/0.04)] transition-[border-color,box-shadow] hover:border-stone-300 hover:shadow-[0_4px_12px_rgb(28_25_23/0.06)]"
-    >
-      <span className="flex items-center justify-between text-sm font-medium text-stone-500">
-        <span className="flex items-center gap-2">
-          <Icon aria-hidden className="h-4 w-4" />
-          {label}
-        </span>
-        {attention ? <span aria-hidden className="h-2 w-2 rounded-full bg-gold" /> : null}
-      </span>
-      <span className="flex items-center justify-between gap-3 text-lg font-semibold text-stone-900">
-        {title}
-        <ChevronRight aria-hidden className="h-4 w-4 text-stone-400 transition-transform group-hover:translate-x-0.5 rtl:-scale-x-100 rtl:group-hover:-translate-x-0.5" />
-      </span>
-    </Link>
+    <section data-tour="todo" aria-labelledby="todo-title" className="mb-8">
+      <h2 id="todo-title" className="mb-4 text-3xl font-bold tracking-tight text-stone-900">
+        {t("To do")}
+      </h2>
+      {items.length === 0 ? (
+        <p className="flex min-h-20 items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-6 text-xl font-medium text-emerald-700">
+          <Check aria-hidden className="h-6 w-6 shrink-0" />
+          {t("You're all caught up. Nothing needs you today.")}
+        </p>
+      ) : (
+        <ul className="space-y-3">
+          {items.map((item) => (
+            <li key={item.to}>
+              <Link
+                to={item.to}
+                className="group flex min-h-20 items-center gap-5 rounded-2xl border border-stone-200 bg-white px-6 py-4 text-xl font-semibold text-stone-900 shadow-[0_1px_2px_rgb(28_25_23/0.04)] transition-colors hover:border-emerald-300 hover:bg-emerald-50/60"
+              >
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gold-wash text-gold-ink">
+                  <item.icon aria-hidden className="h-6 w-6" />
+                </span>
+                <span className="flex-1">{item.text}</span>
+                <span className="inline-flex items-center gap-1 text-lg font-semibold text-emerald-700">
+                  {t("Open")}
+                  <ChevronRight aria-hidden className="h-5 w-5 transition-transform group-hover:translate-x-0.5 rtl:-scale-x-100 rtl:group-hover:-translate-x-0.5" />
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 

@@ -23,7 +23,7 @@ export default function RemindMenu({ student, canEmail = false }: Props) {
 
   return (
     <details className="group relative">
-      <summary className="flex h-10 cursor-pointer list-none items-center gap-1.5 rounded-xl border border-stone-300 bg-white px-3 text-sm font-semibold text-stone-700 transition-colors hover:bg-stone-50 [&::-webkit-details-marker]:hidden">
+      <summary className="flex min-h-12 cursor-pointer list-none items-center gap-1.5 rounded-xl border border-stone-300 bg-white px-4 text-[15px] font-semibold text-stone-700 transition-colors hover:bg-stone-50 [&::-webkit-details-marker]:hidden">
         <BellRing className="h-4 w-4" strokeWidth={2.25} />
         {t("Remind")}
       </summary>
