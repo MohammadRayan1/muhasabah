@@ -11,7 +11,7 @@ export async function action({ request }: Route.ActionArgs) {
 
   switch (undo.kind) {
     case "student-archive":
-      await prisma.student.update({ where: { id: undo.studentId }, data: { active: true } });
+      await prisma.student.update({ where: { id: undo.studentId }, data: { active: true, removedAt: null, removedReason: null } });
       break;
 
     case "program-archive":

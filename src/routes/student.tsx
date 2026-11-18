@@ -79,6 +79,19 @@ export default function StudentProfilePage({ loaderData }: Route.ComponentProps)
   return (
     <div className={pageWidth}>
       <BackLink to="/roster" label={t("Back to Students")} />
+      {!student.active && !student.pendingApproval ? (
+        <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-amber-900">
+          <p className="text-base font-semibold">
+            {student.removedAt ? t("Removed {date}", { date: formatDate(student.removedAt) }) : t("Removed")}
+          </p>
+          <p className="text-[15px]">
+            {student.removedReason
+              ? t("Reason: {reason}", { reason: student.removedReason })
+              : t("No reason given.")}{" "}
+            {t("Their tuition is no longer expected. Restore them from Archived students on the Students page.")}
+          </p>
+        </div>
+      ) : null}
       <div className="mb-6 flex items-start justify-between">
         <div className="flex items-center gap-4">
           <Avatar name={student.name} size="lg" />

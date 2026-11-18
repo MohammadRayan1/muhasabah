@@ -34,8 +34,8 @@ export async function loader({ request }: Route.LoaderArgs) {
     prisma.program.findMany({ where: { active: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.student.findMany({
       where: { active: false, pendingApproval: false },
-      orderBy: { name: "asc" },
-      select: { id: true, name: true },
+      orderBy: { removedAt: "desc" },
+      select: { id: true, name: true, removedAt: true, removedReason: true },
     }),
   ]);
 
@@ -489,6 +489,10 @@ function ArchivedStudents({ students }: { students: Route.ComponentProps["loader
               <Link to={`/students/${s.id}`} className="block font-semibold text-stone-900 hover:underline">
                 {s.name}
               </Link>
+              {s.removedAt ? (
+                <span className="block text-[15px] text-stone-600">{t("Removed {date}", { date: formatDate(s.removedAt) })}</span>
+              ) : null}
+              {s.removedReason ? <span className="block text-[15px] text-stone-700">“{s.removedReason}”</span> : null}
             </span>
             <Form method="post">
               <input type="hidden" name="intent" value="restoreStudent" />

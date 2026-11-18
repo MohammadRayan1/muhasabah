@@ -142,12 +142,12 @@ function TodoList({ proofs, registrations, toRemind }: { proofs: number; registr
   return (
     <section data-tour="todo" aria-labelledby="todo-title" className="mb-8">
       <h2 id="todo-title" className="mb-4 text-3xl font-bold tracking-tight text-stone-900">
-        {t("To do")}
+        {t("To Do")}
       </h2>
       {items.length === 0 ? (
         <p className="flex min-h-20 items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-6 text-xl font-medium text-emerald-700">
           <Check aria-hidden className="h-6 w-6 shrink-0" />
-          {t("You're all caught up. Nothing needs you today.")}
+          {t("You're all caught up. Nothing for today.")}
         </p>
       ) : (
         <ul className="space-y-3">

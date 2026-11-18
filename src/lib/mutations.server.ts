@@ -152,7 +152,11 @@ export async function setStudentActive(formData: FormData): Promise<ActionState>
   const active = str(formData, "active") === "true";
   if (!studentId) return { error: "Missing student" };
 
-  await prisma.student.update({ where: { id: studentId }, data: { active } });
+  const reason = str(formData, "reason").slice(0, 500) || null;
+  await prisma.student.update({
+    where: { id: studentId },
+    data: active ? { active, removedAt: null, removedReason: null } : { active, removedAt: new Date(), removedReason: reason },
+  });
   return { ok: true };
 }
 

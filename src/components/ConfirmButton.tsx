@@ -12,6 +12,7 @@ export default function ConfirmButton({
   confirmLabel,
   action,
   children,
+  field,
   tone = "danger",
 }: {
   label: string;
@@ -19,6 +20,8 @@ export default function ConfirmButton({
   confirmLabel: string;
   action?: string;
   children: ReactNode;
+  /** Extra input shown while asking, e.g. a reason. */
+  field?: ReactNode;
   tone?: "danger" | "neutral";
 }) {
   const t = useT();
@@ -45,7 +48,8 @@ export default function ConfirmButton({
   return (
     <fetcher.Form method="post" action={action} className="flex flex-wrap items-center gap-2" onSubmit={() => setAsking(false)}>
       {children}
-      <span className="text-sm font-medium text-stone-700">{question}</span>
+      <span className="text-[15px] font-medium text-stone-700">{question}</span>
+      {field ? <div className="basis-full">{field}</div> : null}
       <button
         type="submit"
         disabled={busy}

@@ -24,6 +24,10 @@ model Student {
   nextDueDate        DateTime
   joinedAt           DateTime        @default(now())
   active             Boolean         @default(true)
+  // When the teacher removed (archived) the student, and why. Revenue stops
+  // expecting their tuition after the month they were removed.
+  removedAt          DateTime?
+  removedReason      String?
   // Signed up through a link and waiting for the teacher to approve. Kept out of
   // billing, reminders and revenue until then.
   pendingApproval    Boolean         @default(false)

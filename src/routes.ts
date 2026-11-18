@@ -11,6 +11,7 @@ export default [
   route("portal", "routes/portal.tsx"),
   route("receipts/:paymentId", "routes/receipt.tsx"),
   route("proofs/:id/image", "routes/proof-image.ts"),
+  route("reports/payments.csv", "routes/reports-csv.ts"),
 
   // Machine endpoints (no pages)
   route("api/cron/reminders", "routes/api.cron-reminders.ts"),

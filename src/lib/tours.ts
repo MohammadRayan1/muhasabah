@@ -18,7 +18,7 @@ export const TEACHER_TOUR: TourStep[] = [
   {
     path: "/",
     target: "todo",
-    title: "To do",
+    title: "To Do",
     body: "The day's jobs, most important first: payments sent to you to check, new registrations to approve, and students to remind. Tap one to go straight there. When nothing needs you, it says you're all caught up.",
   },
   {
@@ -73,7 +73,7 @@ export const TEACHER_TOUR: TourStep[] = [
     path: "/reports",
     target: "reports-table",
     title: "Revenue reports",
-    body: "Expected against collected for each month. Open a month to see exactly which payments make up its total, each with a numbered receipt.",
+    body: "Collected against expected for the last 12 months. Hover over a month for its numbers, or click it to see every payment. Below: who still owes this month, tuition by program, and a download of the year's payments.",
   },
   {
     target: "language",

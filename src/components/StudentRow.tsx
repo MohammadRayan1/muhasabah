@@ -79,6 +79,18 @@ export default function StudentRow({
           question={t("Move {name} to Archived?", { name: student.name })}
           confirmLabel={t("Yes, remove")}
           action="/?index"
+          field={
+            <label className="block">
+              <span className="block text-[15px] font-semibold text-stone-800">{t("Reason (optional)")}</span>
+              <textarea
+                name="reason"
+                rows={2}
+                maxLength={500}
+                placeholder={t("e.g. Moved away, or finished the program")}
+                className="mt-1 w-full min-w-64 rounded-xl border border-stone-300 bg-white px-3.5 py-2.5 text-base text-stone-900 outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/15"
+              />
+            </label>
+          }
         >
           <input type="hidden" name="intent" value="removeStudent" />
           <input type="hidden" name="studentId" value={student.id} />
