@@ -100,8 +100,8 @@ export default function Sidebar({
     <>
       {/* Phone / small tablet */}
       <header className="border-b border-nav-border bg-nav px-4 pt-4 pb-3 md:hidden">
-        {/* pe-28 leaves room for the fixed language and theme toggles */}
-        <div className="flex items-center justify-between pe-36">
+        {/* pe-40 leaves room for the three fixed toggles (text size, language, theme) */}
+        <div className="flex items-center justify-between gap-2 pe-40">
           <Link to="/" aria-label={t("Muhasabah, go to dashboard")} className="flex items-center gap-2.5">
             <Mark />
             {lang === "ar" ? (
@@ -109,17 +109,17 @@ export default function Sidebar({
                 محاسبة
               </span>
             ) : (
-              <span className="text-[15px] font-semibold text-stone-900">Muhasabah</span>
+              <span className="hidden text-[15px] font-semibold text-stone-900 min-[420px]:inline">Muhasabah</span>
             )}
           </Link>
           <div className="flex items-center gap-1">
             <Link
               to="/signups#new-link"
               aria-label={t("New registration link")}
-              className="flex h-9 items-center gap-1.5 rounded-full bg-emerald-600 px-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
+              className="flex h-10 min-w-10 items-center justify-center gap-1.5 rounded-full bg-emerald-600 px-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 min-[440px]:px-3"
             >
-              <UserPlus className="h-4 w-4" strokeWidth={2.25} />
-              {t("Invite")}
+              <UserPlus aria-hidden className="h-4 w-4" strokeWidth={2.25} />
+              <span className="sr-only min-[440px]:not-sr-only">{t("Invite")}</span>
             </Link>
             <Form method="post" action="/logout">
               <button

@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { ChevronRight, Download } from "lucide-react";
 import type { Route } from "./+types/reports";
 import { requireTeacher } from "@/lib/auth/session.server";
@@ -23,6 +23,7 @@ const panelTitle = "text-lg font-semibold text-stone-900";
 
 export default function ReportsPage({ loaderData }: Route.ComponentProps) {
   const t = useT();
+  const navigate = useNavigate();
   const { months, year, collectedThisYear, monthlyAverage, averageOver, owing, programs, methods } = loaderData;
   const current = months[months.length - 1];
   // Skip the empty months before the class started: the table from the first month
@@ -170,10 +171,14 @@ export default function ReportsPage({ loaderData }: Route.ComponentProps) {
                 const diff = m.collected - m.expected;
                 const tone = diff < 0 ? "text-red-700" : diff > 0 ? "text-emerald-700" : "text-stone-500";
                 return (
-                  <tr key={m.slug} className="group relative transition-colors hover:bg-stone-50">
+                  <tr
+                    key={m.slug}
+                    onClick={() => navigate(`/reports/${m.slug}`)}
+                    className="group cursor-pointer transition-colors hover:bg-stone-50"
+                  >
                     <td className="px-5 py-3.5">
-                      {/* The link covers the whole row, so any part of it opens the month. */}
-                      <Link to={`/reports/${m.slug}`} className="font-semibold text-stone-900 after:absolute after:inset-0 after:content-['']">
+                      {/* Clicking anywhere on the row opens the month; the link is for keyboards. */}
+                      <Link to={`/reports/${m.slug}`} className="font-semibold text-stone-900 hover:underline">
                         {formatMonth(m.slug)}
                       </Link>
                     </td>
